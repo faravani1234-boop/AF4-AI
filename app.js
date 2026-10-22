@@ -6,14 +6,14 @@ let currentSession = [];
 let sending = false;
 try { sessions = JSON.parse(localStorage.getItem(STORAGE) || "[]"); if (!Array.isArray(sessions)) sessions = []; } catch { sessions = []; }
 function persist() { try { localStorage.setItem(STORAGE, JSON.stringify(sessions.slice(-30))); } catch {} }
-function saveSettings() { try { localStorage.setItem(SETTINGS, JSON.stringify({name:$("assistantName").value,color:$("accentColor").value,compact:$("compactMode").checked})); } catch {} }
+function saveSettings() { try { localStorage.setItem(SETTINGS, JSON.stringify({name:$("assistantName").value,color:$("accentColor").value,compact:$("compactMode").checked,apiBaseUrl:$("apiBaseUrl")?.value.trim()||""})); } catch {} }
 function applySettings() {
   document.body.classList.remove("accent-blue","accent-green","accent-pink");
   if ($("accentColor").value !== "purple") document.body.classList.add("accent-" + $("accentColor").value);
   document.body.classList.toggle("compact", $("compactMode").checked);
   document.querySelectorAll(".message.assistant .message-label").forEach(el => el.textContent = $("assistantName").value.trim() || "AF4 AI");
 }
-try { const s = JSON.parse(localStorage.getItem(SETTINGS) || "{}"); if(s.name) $("assistantName").value=s.name; if(s.color) $("accentColor").value=s.color; if(s.compact) $("compactMode").checked=true; } catch {}
+try { const s = JSON.parse(localStorage.getItem(SETTINGS) || "{}"); if(s.name) $("assistantName").value=s.name; if(s.color) $("accentColor").value=s.color; if(s.compact) $("compactMode").checked=true; if(s.apiBaseUrl && $("apiBaseUrl")) $("apiBaseUrl").value=s.apiBaseUrl; } catch {}
 function renderHistory() {
   history.replaceChildren();
   const valid = sessions.filter(s => s && Array.isArray(s.items) && s.items.length);
@@ -41,7 +41,7 @@ async function sendMessage(text) {
   welcome.hidden=true; addMessage("user",value); input.value=""; input.style.height="auto"; setSending(true);
   const pending=addMessage("assistant","دارم فکر می‌کنم…",false);
   try {
-    const r=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:currentSession.map(m=>({role:m.role,content:m.text}))})});
+    const base=(window.AF4_API_BASE_URL || $("apiBaseUrl")?.value || "").trim().replace(/\\/+$/, "");\n    const r=await fetch(`${base}/api/chat`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:currentSession.map(m=>({role:m.role,content:m.text}))})});
     const data=await r.json().catch(()=>({}));
     if(!r.ok) throw new Error(data.error||"ارتباط با دستیار برقرار نشد.");
     pending.remove(); addMessage("assistant",data.reply||"پاسخی دریافت نشد.");
@@ -56,6 +56,6 @@ document.querySelectorAll("[data-prompt]").forEach(b=>b.addEventListener("click"
 $("settingsToggle").addEventListener("click",()=>{$("settingsPanel").hidden=false;});
 $("settingsClose").addEventListener("click",()=>{$("settingsPanel").hidden=true;});
 $("menuToggle").addEventListener("click",()=>$("sidebar").classList.toggle("open"));
-["assistantName","accentColor","compactMode"].forEach(id=>$(id).addEventListener("change",()=>{applySettings();saveSettings();}));
+["assistantName","accentColor","compactMode","apiBaseUrl"].forEach(id=>{ if($(id)) $(id).addEventListener("change",()=>{applySettings();saveSettings();}); });
 $("assistantName").addEventListener("input",()=>{applySettings();saveSettings();});
 applySettings(); renderHistory(); startNewChat();
