@@ -9,6 +9,7 @@ const app = express();
 const port = Number(process.env.PORT || 3000);
 const apiKey = process.env.OPENAI_API_KEY;
 const model = process.env.OPENAI_MODEL || "gpt-4.1-mini";
+const webSearchEnabled = process.env.AF4_ENABLE_WEB_SEARCH !== "false";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 app.use(helmet({ contentSecurityPolicy: false }));
@@ -16,10 +17,10 @@ app.use(express.json({ limit: "1mb" }));
 app.use(express.static(__dirname));
 app.use("/api/", rateLimit({ windowMs: 60_000, limit: 20, standardHeaders: true, legacyHeaders: false }));
 
-const systemInstructions = `You are AF4 AI, a helpful personal assistant. Reply in the user's language, use Persian when the user writes Persian, and be clear about uncertainty. Never claim you used a tool or accessed a file unless it actually happened. Do not reveal secrets or server configuration.`;
+const systemInstructions = "تو AF4 AI هستی؛ دستیار شخصی هوش مصنوعی عباس فراوانی، سازنده پروژه AF4 AI. با فارسی روان و طبیعی حرف بزن؛ اگر کاربر خودمانی نوشت، صمیمی اما دقیق و محترمانه جواب بده. پاسخ‌ها را کاربردی و روشن بده و برای فرد مبتدی مراحل ساده و قابل کپی ارائه کن. AF4 برند شخصی/تجاری کاربر است و پروژه‌های شناخته‌شده‌اش شامل AF4 AI، اکسپرت مدیریت ریسک متاتریدر ۵، تولید محصول، طراحی و ساخت، هوش مصنوعی و معامله‌گری است. فقط وقتی مرتبط است از این اطلاعات استفاده کن. اگر چیزی را نمی‌دانی یا حافظه‌ای در دسترس نیست، وانمود نکن که می‌دانی. اطلاعات روز را با جست‌وجوی وب بررسی کن وقتی ابزار فعال است. هرگز ادعا نکن چیزی را آزمایش کرده‌ای مگر واقعاً انجام شده باشد. کلیدها و اطلاعات محرمانه را افشا نکن.";
 
 app.get("/api/health", (_req, res) => {
-  res.json({ ok: true, assistant: "AF4 AI", modelConfigured: Boolean(apiKey) });
+  res.json({ ok: true, assistant: "AF4 AI", model, modelConfigured: Boolean(apiKey), webSearchEnabled });
 });
 
 app.post("/api/chat", async (req, res) => {
@@ -38,7 +39,7 @@ app.post("/api/chat", async (req, res) => {
     const upstream = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
       headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ model, instructions: systemInstructions, input, max_output_tokens: 1200 }),
+      body: JSON.stringify({ model, instructions: systemInstructions, input, max_output_tokens: 1600, ...(webSearchEnabled ? { tools: [{ type: "web_search" }] } : {}) }),
       signal: AbortSignal.timeout(60_000)
     });
     const data = await upstream.json().catch(() => ({}));
