@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b0b12">
+  <meta name="description" content="AF4 AI — دستیار هوش مصنوعی شخصی شما">
+  <title>AF4 AI</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand"><span class="brand-mark">A</span><div><strong>AF4 AI</strong><small>دستیار شخصی تو</small></div></div>
+      <button class="new-chat" id="newChat">＋ گفت‌وگوی جدید</button>
+      <div class="side-label">گفت‌وگوهای اخیر</div>
+      <div id="history" class="history"><p class="empty-history">هنوز گفت‌وگویی نداری</p></div>
+      <div class="sidebar-bottom"><span class="status-dot"></span> نسخه اولیه · در حال توسعه</div>
+    </aside>
+
+    <main class="main-panel">
+      <header class="topbar">
+        <button class="icon-button menu-button" id="menuToggle" aria-label="باز کردن منو">☰</button>
+        <div class="model-label"><span class="status-dot"></span> AF4 AI <span class="model-tag">پیش‌نمایش</span></div>
+        <button class="icon-button" id="settingsToggle" aria-label="تنظیمات">⚙</button>
+      </header>
+
+      <section class="chat-area" id="chatArea" aria-live="polite">
+        <div class="welcome" id="welcome">
+          <div class="welcome-orb">✦</div>
+          <p class="eyebrow">فضای شخصی تو</p>
+          <h1>سلام رفیق، من <span>AF4 AI</span> هستم.</h1>
+          <p class="welcome-copy">اینجا نقطه شروع دستیار هوش مصنوعی خودته. هر چیزی دوست داری بسازی یا یاد بگیری، از همین‌جا شروع کن.</p>
+          <div class="suggestions">
+            <button class="suggestion" data-prompt="برای ساخت AF4 AI از کجا شروع کنیم؟">🚀 ساخت پروژه رو شروع کنیم</button>
+            <button class="suggestion" data-prompt="یک برنامه یادگیری برنامه‌نویسی برای مبتدی‌ها بده">🧠 برنامه یادگیری بساز</button>
+            <button class="suggestion" data-prompt="چطور قابلیت‌های جدید به دستیارم اضافه کنم؟">🧩 قابلیت‌های جدید</button>
+          </div>
+        </div>
+        <div id="messages" class="messages"></div>
+      </section>
+
+      <form class="composer-wrap" id="chatForm">
+        <div class="composer">
+          <textarea id="messageInput" rows="1" placeholder="پیامت رو برای AF4 AI بنویس..." aria-label="پیام شما"></textarea>
+          <button class="send-button" type="submit" aria-label="ارسال پیام">↑</button>
+        </div>
+        <p class="disclaimer">نسخه نمایشی رابط کاربری است؛ برای پاسخ واقعی باید موتور هوش مصنوعی به‌صورت امن متصل شود.</p>
+      </form>
+    </main>
+
+    <aside class="settings-panel" id="settingsPanel" hidden>
+      <div class="settings-heading"><h2>شخصی‌سازی</h2><button class="icon-button" id="settingsClose" aria-label="بستن تنظیمات">×</button></div>
+      <label for="assistantName">نام دستیار</label>
+      <input id="assistantName" value="AF4 AI" maxlength="32">
+      <label for="accentColor">رنگ اصلی</label>
+      <select id="accentColor"><option value="purple">بنفش</option><option value="blue">آبی</option><option value="green">سبز</option><option value="pink">صورتی</option></select>
+      <label class="switch-row"><span>حالت فشرده</span><input id="compactMode" type="checkbox"></label>
+      <p class="settings-note">تنظیمات ظاهری فعلاً روی همین مرورگر اعمال می‌شوند.</p>
+    </aside>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
