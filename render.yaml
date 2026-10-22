@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: af4-ai
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: AI_PROVIDER
+        value: gemini
+      - key: AI_MODEL
+        value: gemini-2.5-flash
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: NODE_VERSION
+        value: 20
