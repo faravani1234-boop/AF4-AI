@@ -41,7 +41,8 @@ async function sendMessage(text) {
   welcome.hidden=true; addMessage("user",value); input.value=""; input.style.height="auto"; setSending(true);
   const pending=addMessage("assistant","دارم فکر می‌کنم…",false);
   try {
-    const base=(window.AF4_API_BASE_URL || $("apiBaseUrl")?.value || "").trim().replace(/\\/+$/, "");\n    const r=await fetch(`${base}/api/chat`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:currentSession.map(m=>({role:m.role,content:m.text}))})});
+    const base=(window.AF4_API_BASE_URL || $("apiBaseUrl")?.value || "").trim().replace(/\/+$/, "");
+    const r=await fetch(`${base}/api/chat`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:currentSession.map(m=>({role:m.role,content:m.text}))})});
     const data=await r.json().catch(()=>({}));
     if(!r.ok) throw new Error(data.error||"ارتباط با دستیار برقرار نشد.");
     pending.remove(); addMessage("assistant",data.reply||"پاسخی دریافت نشد.");
