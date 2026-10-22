@@ -21,10 +21,20 @@
 6. در مرورگر باز کن: `http://localhost:3000`
 
 ## تنظیمات
-- `OPENAI_API_KEY`: کلید API برای پاسخ‌های واقعی
+- `AI_PROVIDER=gemini`: استفاده از Gemini API (برای شروع گزینه پیشنهادی)
+- `GEMINI_API_KEY`: کلید محرمانه Gemini؛ فقط در تنظیمات امن سرور
+- `AI_MODEL=gemini-2.5-flash`: مدل Gemini
+- برای ارائه‌دهنده OpenAI، `AI_PROVIDER=openai` و `OPENAI_API_KEY` را تنظیم کن
 - `OPENAI_MODEL`: مدل مجاز حساب API؛ پیش‌فرض `gpt-4.1-mini`
-- `AF4_ENABLE_WEB_SEARCH`: جست‌وجوی وب فعال است مگر مقدار آن `false` باشد
+- `AF4_ENABLE_WEB_SEARCH`: جست‌وجوی وب OpenAI فعال است مگر مقدار آن `false` باشد
 - `PORT`: پورت وب‌سرور
+
+## راه‌اندازی رایگان سرور
+1. در Google AI Studio یک کلید API بساز: https://aistudio.google.com/apikey
+2. در Render گزینه New Blueprint را انتخاب و مخزن GitHub را وصل کن؛ فایل `render.yaml` تنظیمات سرویس رایگان را آماده کرده است.
+3. کلید را فقط در متغیر محرمانه `GEMINI_API_KEY` در Render وارد کن؛ کلید را داخل اپ یا GitHub قرار نده.
+4. پس از انتشار، آدرس `https://...onrender.com` را در تنظیمات اپ، قسمت «آدرس سرور هوش مصنوعی» وارد کن.
+5. سرویس رایگان ممکن است بعد از بی‌کاری متوقف شود و درخواست اول پس از بیدار شدن دیرتر پاسخ دهد. سهمیه رایگان مدل نیز محدود و قابل تغییر است.
 
 ## نکات مهم
 - اشتراک ChatGPT و اعتبار API جدا هستند.
