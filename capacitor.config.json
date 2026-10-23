@@ -1,0 +1,11 @@
+{
+  "appId": "com.af4.ai",
+  "appName": "AF4 AI",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": false
+  }
+}
