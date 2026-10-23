@@ -51,7 +51,7 @@ const providers = {
  groq:{key:()=>getKey("groq","GROQ_API_KEY"), model:()=>process.env.GROQ_MODEL||"llama-3.3-70b-versatile", url:"https://api.groq.com/openai/v1/chat/completions"},
  openai:{key:()=>getKey("openai","OPENAI_API_KEY"), model:()=>process.env.OPENAI_MODEL||"gpt-4.1-mini", url:"https://api.openai.com/v1/chat/completions"},
  anthropic:{key:()=>getKey("anthropic","ANTHROPIC_API_KEY"), model:()=>process.env.ANTHROPIC_MODEL||"claude-sonnet-4-5", url:"https://api.anthropic.com/v1/messages"},
- openrouter:{key:()=>getKey("openrouter","OPENROUTER_API_KEY"), model:()=>process.env.OPENROUTER_MODEL||"openrouter/free", url:"https://openrouter.ai/api/v1/chat/completions"}
+ openrouter:{key:()=>getKey("openrouter","OPENROUTER_API_KEY"), model:()=>{const configured=process.env.OPENROUTER_MODEL?.trim();return !configured||configured==="openrouter/free"?"nvidia/nemotron-3.5-lightning:free":configured;}, url:"https://openrouter.ai/api/v1/chat/completions"}
 };
 // انتخاب مدل بر اساس نوع درخواست؛ در صورت خطا، سرویس بعدی امتحان می‌شود.
 function priority(messages=[]){
