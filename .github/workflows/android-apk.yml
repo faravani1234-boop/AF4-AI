@@ -53,7 +53,13 @@ jobs:
           path: AF4-AI.apk
           if-no-files-found: error
           retention-days: 30
+      - name: Verify this build matches the latest main commit
+        id: latest
+        run: |
+          latest=$(curl -fsSL https://api.github.com/repos/$GITHUB_REPOSITORY/git/ref/heads/main | jq -r '.object.sha')
+          if [ "$latest" = "$GITHUB_SHA" ]; then echo "is_latest=true" >> "$GITHUB_OUTPUT"; else echo "is_latest=false" >> "$GITHUB_OUTPUT"; fi
       - name: Publish latest APK download
+        if: steps.latest.outputs.is_latest == 'true'
         uses: ncipollo/release-action@v1
         with:
           tag: android-latest
