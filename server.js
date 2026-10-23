@@ -33,12 +33,23 @@ const systemInstructions = `تو AF4 AI هستی؛ دستیار هوش مصنو�
 - اگر چیزی را واقعاً اجرا، ذخیره، جست‌وجو یا آزمایش نکرده‌ای، نگو انجامش داده‌ای. `;
 const cooldowns = new Map();
 const providers = {
- gemini:{key:()=>process.env.GEMINI_API_KEY, model:()=>process.env.GEMINI_MODEL||"gemini-2.5-flash", url:"https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"},
+ gemini:{key:()=>process.env.GEMINI_API_KEY, model:()=>process.env.GEMINI_MODEL||process.env.AI_MODEL||"gemini-2.5-flash", url:"https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"},
  groq:{key:()=>process.env.GROQ_API_KEY, model:()=>process.env.GROQ_MODEL||"llama-3.3-70b-versatile", url:"https://api.groq.com/openai/v1/chat/completions"},
+ openai:{key:()=>process.env.OPENAI_API_KEY, model:()=>process.env.OPENAI_MODEL||"gpt-4.1-mini", url:"https://api.openai.com/v1/chat/completions"},
+ anthropic:{key:()=>process.env.ANTHROPIC_API_KEY, model:()=>process.env.ANTHROPIC_MODEL||"claude-sonnet-4-5", url:"https://api.anthropic.com/v1/messages"},
  openrouter:{key:()=>process.env.OPENROUTER_API_KEY, model:()=>process.env.OPENROUTER_MODEL||"openrouter/free", url:"https://openrouter.ai/api/v1/chat/completions"}
 };
-function priority(){const requested=(process.env.AI_PROVIDER_PRIORITY||process.env.AI_PROVIDER||"gemini,groq,openrouter").split(",").map(x=>x.trim().toLowerCase());return [...new Set([...requested,"gemini","groq","openrouter"])].filter(x=>providers[x]);}
-function shouldCool(status,body){const s=String(body||"").toLowerCase();return status===429||status>=500||/quota|rate.?limit|resource_exhausted|overloaded|timeout|temporarily unavailable/.test(s);}
+// انتخاب مدل بر اساس نوع درخواست؛ در صورت خطا، سرویس بعدی امتحان می‌شود.
+function priority(messages=[]){
+ const text=messages.map(m=>String(m?.content||"")).join("\n").toLowerCase();
+ const code=/\b(code|coding|program|programming|debug|javascript|typescript|python|github|repository|repo|api|sql|html|css|react|node|bug|stack trace|کد|کدنویسی|برنامه.?نویسی|باگ|خطا|گیت.?هاب|متاتریدر|mql5)\b/i.test(text);
+ const deep=/\b(reason|reasoning|prove|proof|math|analy[sz]e|architecture|design system|research|strategy|compare|trade.?off|استدلال|تحلیل عمیق|اثبات|ریاضی|معماری|مقایسه|تحقیق)\b/i.test(text);
+ const fast=/\b(quick|brief|short|translate|summari[sz]e|simple|ترجمه|خلاصه|کوتاه|ساده)\b/i.test(text);
+ const taskOrder=code?["anthropic","openai","openrouter","gemini","groq"]:deep?["openai","anthropic","gemini","openrouter","groq"]:fast?["groq","gemini","openrouter","openai","anthropic"]:["gemini","openai","groq","anthropic","openrouter"];
+ const configured=(process.env.AI_PROVIDER_PRIORITY||process.env.AI_PROVIDER||"").split(",").map(x=>x.trim().toLowerCase()).filter(x=>providers[x]);
+ return [...new Set([...taskOrder,...configured,...Object.keys(providers)])].filter(x=>providers[x]);
+}
+function shouldCool(status,body){const s=String(body||"").toLowerCase();return status===429||status>=500||/quota|rate.?limit|resource_exhausted|overloaded|timeout|temporarily unavailable|billing|credit balance/.test(s);}
 function safeError(value){let s=String(value||"خطای ناشناخته");for(const name of Object.keys(providers)){const k=providers[name].key();if(k)s=s.split(k).join("[کلید محرمانه پنهان شد]");}return s.replace(/sk-or-v1-[a-f0-9]{20,}/gi,"[کلید محرمانه پنهان شد]").slice(0,220);}
 app.get("/api/health",(_req,res)=>{const order=priority();res.json({ok:true,assistant:"AF4 AI",owner:"Abbas Faravani",providers:order.map(name=>({name,configured:Boolean(providers[name].key()),available:Date.now()>=(cooldowns.get(name)||0)}))});});
 app.post("/api/chat",async(req,res)=>{
@@ -50,14 +61,27 @@ app.post("/api/chat",async(req,res)=>{
  const userContext=profileName||profileAbout?`\nاطلاعات پروفایل کاربر فعلی این دستگاه (اطلاعات او را با سازنده اشتباه نگیر):\n- نامی که کاربر گفته: ${profileName||"هنوز اعلام نکرده"}\n- اطلاعاتی که خودش برای یادآوری وارد کرده: ${profileAbout||"چیزی وارد نشده"}\nبا نامی که خودش انتخاب کرده خطابش کن. این پروفایل را فقط به‌عنوان زمینهٔ همین کاربر در نظر بگیر و جزئیات تأییدنشده را حدس نزن.`:"\nکاربر فعلی هنوز نامش را اعلام نکرده؛ با احترام از او بپرس دوست دارد چه صدایش کنی. سازندهٔ برنامه همچنان عباس فراوانی است.";
  const input=[];
  for(const m of messages){if(!m||!["user","assistant"].includes(m.role)||typeof m.content!=="string")return res.status(400).json({error:"ساختار یکی از پیام‌ها معتبر نیست."});input.push({role:m.role,content:m.content.slice(0,12000)});}
- const order=priority();let lastError="فعلاً هیچ سرویس آماده‌ای با کلید معتبر پیدا نشد.";
+ const order=priority(input);let lastError="فعلاً هیچ سرویس آماده‌ای با کلید معتبر پیدا نشد.";
  for(const name of order){
   const p=providers[name],key=p.key();if(!key||Date.now()<(cooldowns.get(name)||0))continue;
   try{
-   const response=await fetch(p.url,{method:"POST",headers:{"Authorization":"Bearer "+key,"Content-Type":"application/json",...(name==="openrouter"?{"HTTP-Referer":"https://af4-ai.onrender.com","X-Title":"AF4 AI"}:{})},body:JSON.stringify({model:p.model(),messages:[{role:"system",content:systemInstructions+userContext},...input],max_tokens:1600}),signal:AbortSignal.timeout(45000)});
+   const isAnthropic=name==="anthropic";
+   const headers=isAnthropic
+    ?{"x-api-key":key,"anthropic-version":"2023-06-01","content-type":"application/json"}
+    :{"Authorization":"Bearer "+key,"Content-Type":"application/json",...(name==="openrouter"?{"HTTP-Referer":"https://af4-ai.onrender.com","X-Title":"AF4 AI"}:{})};
+   const payload=isAnthropic
+    ?{model:p.model(),max_tokens:1600,system:systemInstructions+userContext,messages:input}
+    :{model:p.model(),messages:[{role:"system",content:systemInstructions+userContext},...input],max_tokens:1600};
+   const response=await fetch(p.url,{method:"POST",headers,body:JSON.stringify(payload),signal:AbortSignal.timeout(45000)});
    const raw=await response.text();let data={};try{data=JSON.parse(raw)}catch{}
-   if(!response.ok){lastError=safeError(data?.error?.message||raw||("HTTP "+response.status));if(shouldCool(response.status,lastError)){cooldowns.set(name,Date.now()+(response.status===429?5*60_000:60_000));console.warn("Provider cooldown:",name,response.status);continue;}return res.status(502).json({error:"سرویس "+name+" درخواست را نپذیرفت: "+lastError});}
-   const reply=data.choices?.[0]?.message?.content;
+   if(!response.ok){
+    lastError=safeError(data?.error?.message||data?.message||raw||("HTTP "+response.status));
+    const wait=response.status===429?5*60_000:(response.status>=500?60_000:10*60_000);
+    cooldowns.set(name,Date.now()+wait);
+    console.warn("Provider rejected request; trying fallback:",name,response.status);
+    continue;
+   }
+   const reply=isAnthropic?data.content?.filter(x=>x.type==="text").map(x=>x.text).join("\n"):data.choices?.[0]?.message?.content;
    if(typeof reply!=="string"||!reply.trim()){lastError="پاسخ متنی دریافت نشد";cooldowns.set(name,Date.now()+60_000);continue;}
    return res.json({reply:reply.trim(),provider:name,model:p.model()});
   }catch(e){lastError=safeError(e?.name==="TimeoutError"?"مهلت پاسخ تمام شد":(e?.message||"خطای اتصال"));cooldowns.set(name,Date.now()+60_000);console.warn("Provider failed:",name,e?.name||"Error");}
