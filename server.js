@@ -113,6 +113,8 @@ app.post("/api/chat",async(req,res)=>{
  const profile=req.body?.profile&&typeof req.body.profile==="object"?req.body.profile:{};
  const profileName=typeof profile.name==="string"?profile.name.trim().slice(0,60):"";
  const profileAbout=typeof profile.about==="string"?profile.about.trim().slice(0,1200):"";
+ const profileTone=["friendly","professional","concise","detailed"].includes(profile.tone)?profile.tone:"friendly";
+ const toneInstructions={friendly:"لحن پاسخ: صمیمی، طبیعی و محترمانه؛ مانند یک دستیار خوش‌برخورد.",professional:"لحن پاسخ: حرفه‌ای، رسمی، روشن و دقیق؛ از شوخی و خودمانی‌گویی زیاد پرهیز کن.",concise:"لحن پاسخ: کوتاه، مستقیم و کاربردی؛ از توضیحات غیرضروری پرهیز کن، مگر اینکه کاربر جزئیات بخواهد.",detailed:"لحن پاسخ: کامل، آموزشی و مرحله‌به‌مرحله؛ مفاهیم را با مثال روشن کن، بدون تکرار بی‌فایده."}[profileTone];
  const userContext=profileName||profileAbout?`\nاطلاعات پروفایل کاربر فعلی این دستگاه (اطلاعات او را با سازنده اشتباه نگیر):\n- نامی که کاربر گفته: ${profileName||"هنوز اعلام نکرده"}\n- اطلاعاتی که خودش برای یادآوری وارد کرده: ${profileAbout||"چیزی وارد نشده"}\nبا نامی که خودش انتخاب کرده خطابش کن. این پروفایل را فقط به‌عنوان زمینهٔ همین کاربر در نظر بگیر و جزئیات تأییدنشده را حدس نزن.`:"\nکاربر فعلی هنوز نامش را اعلام نکرده؛ محترمانه و بدون حدس زدن نام او پاسخ بده. نام سازنده را فقط در پاسخ به سؤال صریح دربارهٔ سازنده مطرح کن.";
  const input=[];
  for(const m of messages){if(!m||!["user","assistant"].includes(m.role)||typeof m.content!=="string")return res.status(400).json({error:"ساختار یکی از پیام‌ها معتبر نیست."});input.push({role:m.role,content:m.content.slice(0,12000)});}
@@ -120,7 +122,7 @@ app.post("/api/chat",async(req,res)=>{
  const needsWeb=wantsGoogleSearch(input);
  const webContext=needsWeb?await searchWebWithoutKey(input):"";
  const webInstructions=needsWeb&&!webContext?"\nکاربر درخواست اطلاعات به‌روز یا پژوهش وب کرده است، اما جست‌وجوی وب در این درخواست نتیجه نداد؛ صادقانه بگو نتوانستی وب را بررسی کنی و اطلاعات تازه را حدس نزن.":"";
- const contextualInstructions=systemInstructions+userContext+(webContext||"")+webInstructions;
+ const contextualInstructions=systemInstructions+"\\nتفضيل لحن کاربر: "+toneInstructions+userContext+(webContext||"")+webInstructions;
  const order=priority(input);let lastError="فعلاً هیچ سرویس آماده‌ای با کلید معتبر پیدا نشد.";let openRouterDailyLimit=false;
  for(const name of order){
   if(Date.now()>=requestDeadline)break;
