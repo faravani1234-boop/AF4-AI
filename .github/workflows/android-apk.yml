@@ -60,13 +60,11 @@ jobs:
           if [ "$latest" = "$GITHUB_SHA" ]; then echo "is_latest=true" >> "$GITHUB_OUTPUT"; else echo "is_latest=false" >> "$GITHUB_OUTPUT"; fi
       - name: Publish latest APK download
         if: steps.latest.outputs.is_latest == 'true'
-        uses: ncipollo/release-action@v1
+        uses: softprops/action-gh-release@v2
         with:
-          tag: android-latest
+          tag_name: android-latest
           name: AF4 AI Android (Latest)
           body: "نسخهٔ نصب اندروید AF4 AI. برای نصب روی گوشی اندرویدی دانلود و بازش کن."
-          artifacts: AF4-AI.apk
-          allowUpdates: true
-          replacesArtifacts: true
-          removeArtifacts: true
-          makeLatest: true
+          files: AF4-AI.apk
+          overwrite_files: true
+          make_latest: true
