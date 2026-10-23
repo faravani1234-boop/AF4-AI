@@ -12,7 +12,7 @@ on:
       - 'capacitor.config.json'
       - '.github/workflows/android-apk.yml'
 permissions:
-  contents: read
+  contents: write
 jobs:
   build-apk:
     runs-on: ubuntu-latest
@@ -31,19 +31,32 @@ jobs:
       - name: Prepare app and install Capacitor
         run: |
           npm install
-          npm install --no-save @capacitor/core@^7 @capacitor/cli@^7 @capacitor/android@^7 sharp
+          npm install --no-save @capacitor/core@^7 @capacitor/cli@^7 @capacitor/android@^7 @capacitor/assets sharp
           mkdir -p www resources
-          cp index.html app.js styles.css manifest.webmanifest icon.svg sw.js www/
           node --input-type=module -e "import sharp from 'sharp'; await sharp('icon.svg').resize(1024,1024).png().toFile('resources/icon.png'); await sharp({create:{width:2732,height:2732,channels:4,background:'#11121a'}}).png().toFile('resources/splash.png')"
+          cp index.html app.js styles.css manifest.webmanifest icon.svg sw.js www/
           npx cap add android
           npx cap sync android
-          npx capacitor-assets generate --android || true
+          npx capacitor-assets generate --android
       - name: Build debug APK
         run: cd android && chmod +x gradlew && ./gradlew assembleDebug
-      - name: Upload APK
+      - name: Prepare public APK name
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk AF4-AI.apk
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: AF4-AI-Android-APK
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: AF4-AI.apk
           if-no-files-found: error
           retention-days: 30
+      - name: Publish latest APK download
+        uses: ncipollo/release-action@v1
+        with:
+          tag: android-latest
+          name: AF4 AI Android (Latest)
+          body: "نسخهٔ نصب اندروید AF4 AI. برای نصب روی گوشی اندرویدی دانلود و بازش کن."
+          artifacts: AF4-AI.apk
+          allowUpdates: true
+          replacesArtifacts: true
+          removeArtifacts: true
+          makeLatest: true
