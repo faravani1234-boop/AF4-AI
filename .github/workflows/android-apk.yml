@@ -9,7 +9,10 @@ on:
       - 'server.js'
       - 'manifest.webmanifest'
       - 'icon.svg'
+      - 'sw.js'
       - 'capacitor.config.json'
+      - 'package.json'
+      - 'package-lock.json'
       - '.github/workflows/android-apk.yml'
 concurrency:
   group: af4-ai-android-${{ github.ref }}
@@ -42,8 +45,13 @@ jobs:
           npx cap add android
           npx cap sync android
           npx capacitor-assets generate --android
+      - name: Verify Android target SDK and package identity
+        run: |
+          grep -q "targetSdk 35" android/app/build.gradle
+          grep -q "applicationId 'com.af4.ai'" android/app/build.gradle
+          echo "Android target SDK and AF4 AI application ID verified."
       - name: Build debug APK
-        run: cd android && chmod +x gradlew && ./gradlew assembleDebug
+        run: cd android && chmod +x gradlew && ./gradlew --no-daemon assembleDebug
       - name: Prepare public APK name
         run: cp android/app/build/outputs/apk/debug/app-debug.apk AF4-AI.apk
       - name: Upload APK artifact
@@ -64,7 +72,7 @@ jobs:
         with:
           tag_name: android-latest
           name: AF4 AI Android (Latest)
-          body: "نسخهٔ نصب اندروید AF4 AI. برای نصب روی گوشی اندرویدی دانلود و بازش کن."
+          body: "نسخه اندروید AF4 AI. این APK با امضای آزمایشی GitHub Actions ساخته می‌شود؛ هشدارهای Play Protect ممکن است همچنان نمایش داده شوند."
           files: AF4-AI.apk
           overwrite_files: true
           make_latest: true
