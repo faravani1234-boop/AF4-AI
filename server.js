@@ -52,7 +52,9 @@ const providers = {
  groq:{key:()=>getKey("groq","GROQ_API_KEY"), model:()=>process.env.GROQ_MODEL||"llama-3.3-70b-versatile", url:"https://api.groq.com/openai/v1/chat/completions"},
  openai:{key:()=>getKey("openai","OPENAI_API_KEY"), model:()=>process.env.OPENAI_MODEL||"gpt-4.1-mini", url:"https://api.openai.com/v1/chat/completions"},
  anthropic:{key:()=>getKey("anthropic","ANTHROPIC_API_KEY"), model:()=>process.env.ANTHROPIC_MODEL||"claude-sonnet-4-5", url:"https://api.anthropic.com/v1/messages"},
- openrouter:{key:()=>getKey("openrouter","OPENROUTER_API_KEY"), model:()=>{const configured=process.env.OPENROUTER_MODEL?.trim();return !configured?"openrouter/free":configured;}, url:"https://openrouter.ai/api/v1/chat/completions"}
+ openrouter:{key:()=>getKey("openrouter","OPENROUTER_API_KEY"), model:()=>{const configured=process.env.OPENROUTER_MODEL?.trim();return !configured?"openrouter/free":configured;}, url:"https://openrouter.ai/api/v1/chat/completions"},
+ // آخرین مسیر جایگزین رایگانِ بدون کلید؛ سرویس عمومی است و ممکن است محدودیت یا قطعی داشته باشد.
+ pollinations:{key:()=>"anonymous",model:()=>"openai",url:"https://text.pollinations.ai/openai"}
 };
 // انتخاب مدل بر اساس نوع درخواست؛ در صورت خطا، سرویس بعدی امتحان می‌شود.
 function priority(messages=[]){
@@ -66,7 +68,7 @@ function priority(messages=[]){
 }
 function shouldCool(status,body){const s=String(body||"").toLowerCase();return status===429||status>=500||/quota|rate.?limit|resource_exhausted|overloaded|timeout|temporarily unavailable|billing|credit balance/.test(s);}
 function safeError(value){let s=String(value||"خطای ناشناخته");for(const name of Object.keys(providers)){const env=name.toUpperCase()+"_API_KEYS";const all=[...(process.env[env]||"").split(",").map(x=>x.trim()).filter(Boolean),process.env[name.toUpperCase()+"_API_KEY"]].filter(Boolean);for(const k of all)s=s.split(k).join("[کلید محرمانه پنهان شد]");}return s.replace(/sk-or-v1-[a-f0-9]{20,}/gi,"[کلید محرمانه پنهان شد]").slice(0,220);}
-app.get("/api/health",(_req,res)=>{const order=priority();res.json({ok:true,assistant:"AF4 AI",owner:"Abbas Faravani",providers:order.map(name=>({name,configured:hasKeys(name, name.toUpperCase()+"_API_KEY"),available:Date.now()>=(cooldowns.get(name)||0)}))});});
+app.get("/api/health",(_req,res)=>{const order=priority();res.json({ok:true,assistant:"AF4 AI",owner:"Abbas Faravani",providers:order.map(name=>({name,configured:name==="pollinations"||hasKeys(name, name.toUpperCase()+"_API_KEY"),available:Date.now()>=(cooldowns.get(name)||0)}))});});
 app.post("/api/chat",async(req,res)=>{
  const messages=req.body?.messages;
  if(!Array.isArray(messages)||!messages.length||messages.length>40)return res.status(400).json({error:"ساختار پیام‌ها معتبر نیست."});
@@ -80,7 +82,7 @@ app.post("/api/chat",async(req,res)=>{
  for(const name of order){
   const p=providers[name];
   const key=p.key();
-  if(!key||Date.now()<(cooldowns.get(name)||0))continue;
+  if((!key&&name!=="pollinations")||Date.now()<(cooldowns.get(name)||0))continue;
   const models=name==="openrouter"
    ? [...new Set([p.model(),"openrouter/free","nvidia/nemotron-3.5-lightning:free","nvidia/nemotron-3-ultra:free","nvidia/nemotron-3.5-super-vl:free","poolside/laguna-s-2.1:free","dots-studio/dots-3-note-preview:free"])]
    : [p.model()];
@@ -90,7 +92,7 @@ app.post("/api/chat",async(req,res)=>{
     const isAnthropic=name==="anthropic";
     const headers=isAnthropic
      ?{"x-api-key":key,"anthropic-version":"2023-06-01","content-type":"application/json"}
-     :{"Authorization":"Bearer "+key,"Content-Type":"application/json",...(name==="openrouter"?{"HTTP-Referer":"https://af4-ai.onrender.com","X-Title":"AF4 AI"}:{})};
+     :{...(name==="pollinations"?{}:{"Authorization":"Bearer "+key}),"Content-Type":"application/json",...(name==="openrouter"?{"HTTP-Referer":"https://af4-ai.onrender.com","X-Title":"AF4 AI"}:{})};
     const payload=isAnthropic
      ?{model,max_tokens:1600,system:systemInstructions+userContext,messages:input}
      :{model,messages:[{role:"system",content:systemInstructions+userContext},...input],max_tokens:1600};
@@ -141,7 +143,7 @@ app.post("/api/chat",async(req,res)=>{
   // Cool down the provider only after all its candidate models failed.
   if(providerHadTransientFailure)cooldowns.set(name,Date.now()+30_000);
  }
- const help=openRouterDailyLimit?" سهمیه روزانه مدل‌های رایگان OpenRouter تمام شده است؛ برای ادامه بدون خرید اعتبار، یک کلید Gemini رایگان در متغیر GEMINI_API_KEY بخش Environment در Render تنظیم کن و سپس سرویس را دوباره منتشر کن.":"";
+ const help=openRouterDailyLimit?" سهمیه روزانه OpenRouter تمام شده و مسیر جایگزین عمومی هم پاسخ نداده است؛ برای اتصال پایدارتر، یک کلید Gemini رایگان در متغیر GEMINI_API_KEY بخش Environment در Render تنظیم کن.":"";
  res.status(503).json({error:"همه سرویس‌های تنظیم‌شده فعلاً در دسترس نیستند. "+lastError+help});
 });
 app.get("*",(_req,res)=>res.sendFile(path.join(__dirname,"index.html")));
