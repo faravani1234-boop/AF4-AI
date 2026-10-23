@@ -42,9 +42,10 @@
         </div>
         <div class="topbar-actions">
           <span class="connection-pill"><span class="status-dot"></span><span>متصل</span></span>
+          <button class="icon-button" id="installButton" aria-label="نصب برنامه" title="نصب برنامه" hidden>⇩</button>
           <button class="icon-button theme-button" id="themeToggle" aria-label="تغییر تم" title="تغییر حالت روشن و تاریک">☾</button>
           <button class="icon-button settings-button" id="settingsToggle" aria-label="تنظیمات" title="تنظیمات">⚙</button>
-          <button class="profile-chip" id="profileButton" aria-label="پروفایل کاربر"><span class="avatar">ع</span><span class="profile-chip-text"><strong>عباس</strong><small>سازندهٔ AF4</small></span><span class="chevron">⌄</span></button>
+          <button class="profile-chip" id="profileButton" aria-label="پروفایل کاربر"><span class="avatar">ع</span><span class="profile-chip-text"><strong id="topUserName">پروفایل شما</strong><small>کاربر AF4 AI</small></span><span class="chevron">⌄</span></button>
         </div>
       </header>
 
@@ -52,7 +53,7 @@
         <div class="welcome" id="welcome">
           <div class="welcome-brand"><span class="welcome-logo"><span>AF</span><i>4</i></span><span class="welcome-spark">✦</span></div>
           <div class="eyebrow"><span class="eyebrow-line"></span> فضای هوشمند اختصاصی تو <span class="eyebrow-line"></span></div>
-          <h1>سلام عباس،<br><span class="headline-gradient">امروز چی می‌سازیم؟</span></h1>
+          <h1>سلام <span id="welcomeName">دوست من</span>،<br><span class="headline-gradient">امروز چی می‌سازیم؟</span></h1>
           <p class="welcome-copy">ایده‌هات رو به برنامه تبدیل کن. از ساخت محصول و یادگیری هوش مصنوعی تا کدنویسی و توسعهٔ پروژه‌های AF4؛ قدم‌به‌قدم کنارت هستم.</p>
           <div class="suggestions">
             <button class="suggestion" data-prompt="برای توسعه حرفه‌ای AF4-AI یک نقشه راه مرحله‌به‌مرحله طراحی کن."><span class="suggestion-icon violet">✦</span><span><strong>توسعهٔ AF4-AI</strong><small>قابلیت‌های حرفه‌ای اضافه کنیم</small></span><span class="suggestion-arrow">↗</span></button>
@@ -68,6 +69,7 @@
       <form class="composer-wrap" id="chatForm">
         <div class="composer">
           <button type="button" class="composer-tool" id="composerPlus" aria-label="راهنما" title="راهنما">＋</button>
+          <button type="button" class="composer-tool voice-button" id="voiceButton" aria-label="ورودی صوتی" title="برای صحبت کردن بزن">🎙</button>
           <textarea id="messageInput" rows="1" placeholder="هر چیزی توی ذهنته از من بپرس..." aria-label="پیام شما"></textarea>
           <div class="composer-end"><span class="composer-hint">↵ ارسال</span><button class="send-button" type="submit" aria-label="ارسال پیام" title="ارسال پیام">↑</button></div>
         </div>
@@ -77,6 +79,11 @@
 
     <aside class="settings-panel" id="settingsPanel" hidden>
       <div class="settings-heading"><div><span class="settings-kicker">PREFERENCES</span><h2>تنظیمات دستیار</h2></div><button class="icon-button" id="settingsClose" aria-label="بستن تنظیمات">×</button></div>
+      <div class="settings-section-title">پروفایل و حافظهٔ این دستگاه</div>
+      <label for="profileName">اسم شما</label><input id="profileName" maxlength="60" placeholder="اسم خودت را وارد کن">
+      <label for="profileAbout">چیزهایی که دستیار دربارهٔ شما بداند (اختیاری)</label><textarea id="profileAbout" rows="3" maxlength="1200" placeholder="علایق، کار یا هدف‌هایت..."></textarea>
+      <p class="settings-note">پروفایل و گفت‌وگوها روی همین دستگاه ذخیره می‌شوند. فعلاً بین گوشی‌های مختلف همگام‌سازی نمی‌شوند.</p>
+      <div class="settings-divider"></div>
       <div class="settings-section-title">شخصی‌سازی</div>
       <label for="assistantName">نام دستیار</label><input id="assistantName" value="AF4 AI" maxlength="32">
       <label for="accentColor">رنگ اصلی</label><select id="accentColor"><option value="purple">بنفش AF4</option><option value="blue">آبی</option><option value="green">سبز</option><option value="pink">صورتی</option></select>
@@ -91,6 +98,18 @@
       <button class="settings-done" id="settingsDone">تمام شد</button>
     </aside>
     <div class="mobile-scrim" id="mobileScrim"></div>
+  <div class="onboarding-backdrop" id="onboarding" hidden>
+    <form class="onboarding-card" id="onboardingForm">
+      <div class="onboarding-brand"><span class="welcome-logo"><span>AF</span><i>4</i></span></div>
+      <div class="settings-kicker">WELCOME TO AF4</div>
+      <h2>اول با هم آشنا بشیم</h2>
+      <p>من AF4 AI هستم؛ دستیار هوش مصنوعی ساخته‌شده توسط عباس فراوانی. دوست داری چی صدات کنم؟</p>
+      <label for="onboardingName">اسم شما</label><input id="onboardingName" maxlength="60" required autocomplete="given-name" placeholder="مثلاً علی">
+      <label for="onboardingAbout">دربارهٔ خودت (اختیاری)</label><textarea id="onboardingAbout" rows="3" maxlength="1200" placeholder="علایق یا کاری که انجام می‌دی..."></textarea>
+      <button class="settings-done" type="submit">شروع گفت‌وگو <span>←</span></button>
+      <small>اسم و اطلاعات این بخش فقط در حافظهٔ همین دستگاه ذخیره می‌شود.</small>
+    </form>
+  </div>
   </div>
   <script src="app.js"></script>
   <script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("/sw.js").catch(()=>{}));}</script>
