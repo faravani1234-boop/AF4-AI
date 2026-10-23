@@ -5,6 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0b0b12">
   <meta name="description" content="AF4 AI — دستیار هوش مصنوعی شخصی شما">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>AF4 AI</title>
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -15,53 +20,39 @@
       <button class="new-chat" id="newChat">＋ گفت‌وگوی جدید</button>
       <div class="side-label">گفت‌وگوهای اخیر</div>
       <div id="history" class="history"><p class="empty-history">هنوز گفت‌وگویی نداری</p></div>
-      <div class="sidebar-bottom"><span class="status-dot"></span> نسخه اولیه · در حال توسعه</div>
+      <div class="sidebar-bottom"><span class="status-dot"></span> نسخه شخصی · چند سرویس هوش مصنوعی</div>
     </aside>
-
     <main class="main-panel">
       <header class="topbar">
         <button class="icon-button menu-button" id="menuToggle" aria-label="باز کردن منو">☰</button>
-        <div class="model-label"><span class="status-dot"></span> AF4 AI <span class="model-tag">پیش‌نمایش</span></div>
+        <div class="model-label"><span class="status-dot"></span> AF4 AI <span class="model-tag">چندمدلی</span></div>
         <button class="icon-button" id="settingsToggle" aria-label="تنظیمات">⚙</button>
       </header>
-
       <section class="chat-area" id="chatArea" aria-live="polite">
         <div class="welcome" id="welcome">
-          <div class="welcome-orb">✦</div>
-          <p class="eyebrow">فضای شخصی تو</p>
+          <div class="welcome-orb">✦</div><p class="eyebrow">فضای شخصی تو</p>
           <h1>سلام رفیق، من <span>AF4 AI</span> هستم.</h1>
-          <p class="welcome-copy">اینجا نقطه شروع دستیار هوش مصنوعی خودته. هر چیزی دوست داری بسازی یا یاد بگیری، از همین‌جا شروع کن.</p>
+          <p class="welcome-copy">چند سرویس هوش مصنوعی پشت‌صحنه؛ اگر یکی موقتاً در دسترس نباشد، به سرویس بعدی می‌روم.</p>
           <div class="suggestions">
             <button class="suggestion" data-prompt="برای ساخت AF4 AI از کجا شروع کنیم؟">🚀 ساخت پروژه رو شروع کنیم</button>
             <button class="suggestion" data-prompt="یک برنامه یادگیری برنامه‌نویسی برای مبتدی‌ها بده">🧠 برنامه یادگیری بساز</button>
             <button class="suggestion" data-prompt="چطور قابلیت‌های جدید به دستیارم اضافه کنم؟">🧩 قابلیت‌های جدید</button>
           </div>
-        </div>
-        <div id="messages" class="messages"></div>
+        </div><div id="messages" class="messages"></div>
       </section>
-
-      <form class="composer-wrap" id="chatForm">
-        <div class="composer">
-          <textarea id="messageInput" rows="1" placeholder="پیامت رو برای AF4 AI بنویس..." aria-label="پیام شما"></textarea>
-          <button class="send-button" type="submit" aria-label="ارسال پیام">↑</button>
-        </div>
-        <p class="disclaimer">برای اطلاعات روز، AF4 AI می‌تواند از جست‌وجوی وب استفاده کند؛ قابلیت‌ها به تنظیمات سرور بستگی دارند.</p>
-      </form>
+      <form class="composer-wrap" id="chatForm"><div class="composer"><textarea id="messageInput" rows="1" placeholder="پیامت رو برای AF4 AI بنویس..." aria-label="پیام شما"></textarea><button class="send-button" type="submit" aria-label="ارسال پیام">↑</button></div><p class="disclaimer">زیر هر پاسخ، سرویس و مدل استفاده‌شده نمایش داده می‌شود.</p></form>
     </main>
-
     <aside class="settings-panel" id="settingsPanel" hidden>
       <div class="settings-heading"><h2>شخصی‌سازی</h2><button class="icon-button" id="settingsClose" aria-label="بستن تنظیمات">×</button></div>
-      <label for="assistantName">نام دستیار</label>
-      <input id="assistantName" value="AF4 AI" maxlength="32">
-      <label for="apiBaseUrl">آدرس سرور هوش مصنوعی</label>
-      <input id="apiBaseUrl" type="url" inputmode="url" placeholder="https://your-service.onrender.com" autocomplete="url">
-      <p class="settings-note">این آدرس را بعد از راه‌اندازی سرور وارد کن؛ کلید API را اینجا وارد نکن.</p>
-      <label for="accentColor">رنگ اصلی</label>
-      <select id="accentColor"><option value="purple">بنفش</option><option value="blue">آبی</option><option value="green">سبز</option><option value="pink">صورتی</option></select>
+      <label for="assistantName">نام دستیار</label><input id="assistantName" value="AF4 AI" maxlength="32">
+      <label for="apiBaseUrl">آدرس سرور هوش مصنوعی</label><input id="apiBaseUrl" type="url" inputmode="url" placeholder="https://af4-ai.onrender.com" autocomplete="url">
+      <p class="settings-note">کلیدهای API داخل این صفحه وارد نمی‌شوند؛ فقط در تنظیمات محرمانه سرور قرار می‌گیرند.</p>
+      <label for="accentColor">رنگ اصلی</label><select id="accentColor"><option value="purple">بنفش</option><option value="blue">آبی</option><option value="green">سبز</option><option value="pink">صورتی</option></select>
       <label class="switch-row"><span>حالت فشرده</span><input id="compactMode" type="checkbox"></label>
-      <p class="settings-note">تنظیمات ظاهری فعلاً روی همین مرورگر اعمال می‌شوند.</p>
+      <p class="settings-note">تاریخچه و ظاهر فعلاً در همین مرورگر ذخیره می‌شوند.</p>
     </aside>
   </div>
   <script src="app.js"></script>
+  <script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("/sw.js").catch(()=>{}));}</script>
 </body>
 </html>
