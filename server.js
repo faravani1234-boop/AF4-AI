@@ -53,8 +53,8 @@ const providers = {
  openai:{key:()=>getKey("openai","OPENAI_API_KEY"), model:()=>process.env.OPENAI_MODEL||"gpt-4.1-mini", url:"https://api.openai.com/v1/chat/completions"},
  anthropic:{key:()=>getKey("anthropic","ANTHROPIC_API_KEY"), model:()=>process.env.ANTHROPIC_MODEL||"claude-sonnet-4-5", url:"https://api.anthropic.com/v1/messages"},
  openrouter:{key:()=>getKey("openrouter","OPENROUTER_API_KEY"), model:()=>{const configured=process.env.OPENROUTER_MODEL?.trim();return !configured?"openrouter/free":configured;}, url:"https://openrouter.ai/api/v1/chat/completions"},
- // آخرین مسیر جایگزین رایگانِ بدون کلید؛ سرویس عمومی است و ممکن است محدودیت یا قطعی داشته باشد.
- pollinations:{key:()=>"anonymous",model:()=>"openai",url:"https://text.pollinations.ai/openai"}
+ // Pollinations: استفاده فقط با کلید معتبر؛ endpoint قدیمی anonymous دیگر قابل اتکا نیست.
+ pollinations:{key:()=>getKey("pollinations","POLLINATIONS_API_KEY"),model:()=>process.env.POLLINATIONS_MODEL||"openai",url:"https://gen.pollinations.ai/v1/chat/completions"}
 };
 // انتخاب مدل بر اساس نوع درخواست؛ در صورت خطا، سرویس بعدی امتحان می‌شود.
 function priority(messages=[]){
@@ -126,7 +126,7 @@ app.post("/api/chat",async(req,res)=>{
   if(Date.now()>=requestDeadline)break;
   const p=providers[name];
   const key=p.key();
-  if((!key&&name!=="pollinations")||Date.now()<(cooldowns.get(name)||0))continue;
+  if(!key||Date.now()<(cooldowns.get(name)||0))continue;
   const models=name==="openrouter"
    ? [...new Set([p.model(),"openrouter/free","nvidia/nemotron-3.5-lightning:free","nvidia/nemotron-3-ultra:free","nvidia/nemotron-3.5-super-vl:free","poolside/laguna-s-2.1:free","dots-studio/dots-3-note-preview:free"])]
    : [p.model()];
@@ -148,7 +148,7 @@ app.post("/api/chat",async(req,res)=>{
      :isAnthropic
       ?{model,max_tokens:1600,system:contextualInstructions,messages:input}
       :{model,messages:[{role:"system",content:contextualInstructions},...input],max_tokens:1600};
-    const response=await fetch(endpoint,{method:"POST",headers:requestHeaders,body:JSON.stringify(payload),signal:AbortSignal.timeout(Math.min(name==="pollinations"?12000:7000,Math.max(1000,requestDeadline-Date.now())))});
+    const response=await fetch(endpoint,{method:"POST",headers:requestHeaders,body:JSON.stringify(payload),signal:AbortSignal.timeout(Math.min(name==="pollinations"?6000:7000,Math.max(1000,requestDeadline-Date.now())))});
     const raw=await response.text();
     let data={};try{data=JSON.parse(raw)}catch{}
     if(!response.ok||data?.error){
@@ -204,8 +204,11 @@ app.post("/api/chat",async(req,res)=>{
   if(providerHadTransientFailure)cooldowns.set(name,Date.now()+30_000);
  }
  if(Date.now()>=requestDeadline)lastError="زمان تلاش برای سرویس‌ها تمام شد؛ لطفاً دوباره تلاش کن یا یک سرویس معتبر اضافه کن.";
- const help=openRouterDailyLimit?" سهمیه روزانه OpenRouter تمام شده و مسیر جایگزین عمومی هم پاسخ نداده است؛ برای اتصال پایدارتر، یک کلید Gemini رایگان در متغیر GEMINI_API_KEY بخش Environment در Render تنظیم کن.":"";
- res.status(503).json({error:"همه سرویس‌های تنظیم‌شده فعلاً در دسترس نیستند. "+lastError+help});
+ const hasAnyConfiguredProvider=Object.keys(providers).some(name=>hasKeys(name,name.toUpperCase()+"_API_KEY"));
+ const help=openRouterDailyLimit
+  ? (hasAnyConfiguredProvider?" سهمیه رایگان OpenRouter تمام شده است و سرویس‌های جایگزینِ دارای کلید هم پاسخ نداده‌اند.":" سهمیه رایگان OpenRouter تمام شده و هیچ سرویس جایگزین با کلید معتبر تنظیم نشده است. برای برگشت پاسخ‌گویی، باید یک کلید API رایگان معتبر به Environment در Render اضافه شود؛ بدون آن نمی‌شود پاسخ هوش مصنوعی را تضمین کرد.")
+  : (!hasAnyConfiguredProvider?" هیچ سرویس هوش مصنوعی با کلید معتبر تنظیم نشده است. افزودن یک کلید API رایگان معتبر در Environment در Render لازم است؛ سرویس‌های بدون کلید قابل اتکا نیستند.":"");
+ res.status(503).json({error:"فعلاً هیچ سرویس هوش مصنوعیِ قابل‌استفاده پاسخ نداد. "+lastError+help});
 });
 app.get("*",(_req,res)=>res.sendFile(path.join(__dirname,"index.html")));
 app.listen(port,()=>console.log("AF4 AI running on "+port));
