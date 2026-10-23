@@ -7,9 +7,9 @@ import { fileURLToPath } from "node:url";
 
 const app = express();
 const port = Number(process.env.PORT || 3000);
-const provider = (process.env.AI_PROVIDER || (process.env.GEMINI_API_KEY ? "gemini" : "openai")).toLowerCase();
-const apiKey = provider === "gemini" ? process.env.GEMINI_API_KEY : process.env.OPENAI_API_KEY;
-const model = process.env.AI_MODEL || (provider === "gemini" ? "gemini-2.5-flash" : (process.env.OPENAI_MODEL || "gpt-4.1-mini"));
+const provider = (process.env.AI_PROVIDER || (process.env.GEMINI_API_KEY ? "gemini" : process.env.OPENROUTER_API_KEY ? "openrouter" : "openai")).toLowerCase();
+const apiKey = provider === "gemini" ? process.env.GEMINI_API_KEY : provider === "openrouter" ? process.env.OPENROUTER_API_KEY : process.env.OPENAI_API_KEY;
+const model = process.env.AI_MODEL || (provider === "gemini" ? "gemini-2.5-flash" : provider === "openrouter" ? "openrouter/free" : (process.env.OPENAI_MODEL || "gpt-4.1-mini"));
 const webSearchEnabled = provider === "openai" && process.env.AF4_ENABLE_WEB_SEARCH !== "false";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -40,10 +40,10 @@ app.get("/api/health", (_req, res) => {
 app.post("/api/chat", async (req, res) => {
   try {
     if (!apiKey) {
-      const keyName = provider === "gemini" ? "GEMINI_API_KEY" : "OPENAI_API_KEY";
+      const keyName = provider === "gemini" ? "GEMINI_API_KEY" : provider === "openrouter" ? "OPENROUTER_API_KEY" : "OPENAI_API_KEY";
       return res.status(503).json({ error: `هنوز کلید ${keyName} روی سرور تنظیم نشده است. آن را در تنظیمات امن سرور قرار بده.` });
     }
-    if (provider !== "gemini" && provider !== "openai") {
+    if (provider !== "gemini" && provider !== "openai" && provider !== "openrouter") {
       return res.status(500).json({ error: "ارائه‌دهنده هوش مصنوعی در تنظیمات سرور معتبر نیست." });
     }
     const messages = req.body?.messages;
@@ -59,6 +59,14 @@ app.post("/api/chat", async (req, res) => {
     if (provider === "gemini") {
       endpoint = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
       headers = { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" };
+      payload = {
+        model,
+        messages: [{ role: "system", content: systemInstructions }, ...input],
+        max_tokens: 1600
+      };
+    } else if (provider === "openrouter") {
+      endpoint = "https://openrouter.ai/api/v1/chat/completions";
+      headers = { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json", "HTTP-Referer": "https://af4-ai.onrender.com", "X-Title": "AF4 AI" };
       payload = {
         model,
         messages: [{ role: "system", content: systemInstructions }, ...input],
@@ -87,7 +95,7 @@ app.post("/api/chat", async (req, res) => {
       console.error("AI provider request failed:", provider, upstream.status);
       return res.status(502).json({ error: "ارتباط با سرویس هوش مصنوعی ناموفق بود. کلید API، سهمیه و نام مدل را بررسی کن." });
     }
-    const reply = provider === "gemini"
+    const reply = provider === "gemini" || provider === "openrouter"
       ? data.choices?.[0]?.message?.content
       : (Array.isArray(data.output)
           ? data.output.flatMap(item => Array.isArray(item.content) ? item.content : []).filter(item => item.type === "output_text").map(item => item.text).join("\n")
