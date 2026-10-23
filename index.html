@@ -3,54 +3,94 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#0b0b12">
-  <meta name="description" content="AF4 AI — دستیار هوش مصنوعی شخصی شما">
+  <meta name="theme-color" content="#f7f8fc">
+  <meta name="description" content="AF4 AI — دستیار هوش مصنوعی شخصی عباس فرافانی">
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="icon" href="/icon.svg" type="image/svg+xml">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>AF4 AI</title>
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>AF4 AI | دستیار شخصی</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <div class="app-shell">
     <aside class="sidebar" id="sidebar">
-      <div class="brand"><span class="brand-mark">A</span><div><strong>AF4 AI</strong><small>دستیار شخصی تو</small></div></div>
-      <button class="new-chat" id="newChat">＋ گفت‌وگوی جدید</button>
-      <div class="side-label">گفت‌وگوهای اخیر</div>
-      <div id="history" class="history"><p class="empty-history">هنوز گفت‌وگویی نداری</p></div>
-      <div class="sidebar-bottom"><span class="status-dot"></span> نسخه شخصی · چند سرویس هوش مصنوعی</div>
+      <div class="sidebar-top">
+        <a class="brand" href="/" aria-label="صفحه اصلی AF4 AI">
+          <span class="brand-mark"><span>AF</span><i>4</i></span>
+          <span class="brand-copy"><strong>AF4 <b>AI</b></strong><small>دستیار شخصی هوشمند</small></span>
+        </a>
+        <button class="icon-button mobile-close" id="sidebarClose" aria-label="بستن منو">×</button>
+      </div>
+      <button class="new-chat" id="newChat"><span class="new-chat-icon">＋</span><span>گفت‌وگوی جدید</span><kbd>⌘ K</kbd></button>
+      <div class="side-label">فضای کاری</div>
+      <button class="nav-item active" id="homeNav"><span class="nav-icon">✳</span> دستیار AF4 <span class="nav-pulse"></span></button>
+      <button class="nav-item" id="profileNav"><span class="nav-icon">♙</span> دربارهٔ من</button>
+      <div class="history-heading"><span class="side-label">گفت‌وگوهای اخیر</span><button id="clearHistory" class="subtle-button" title="پاک کردن تاریخچه">پاک‌کردن</button></div>
+      <div id="history" class="history"><p class="empty-history">گفت‌وگوهای جدیدت اینجا می‌مانند.</p></div>
+      <div class="sidebar-spacer"></div>
+      <div class="sidebar-status"><span class="status-dot"></span><span><strong>AF4 AI آماده است</strong><small>دستیار اختصاصی تو</small></span><span class="status-menu">•••</span></div>
+      <div class="sidebar-footer">ساخته‌شده برای رشد ایده‌های بزرگ <span>✦</span></div>
     </aside>
+
     <main class="main-panel">
       <header class="topbar">
-        <button class="icon-button menu-button" id="menuToggle" aria-label="باز کردن منو">☰</button>
-        <div class="model-label"><span class="status-dot"></span> AF4 AI <span class="model-tag">چندمدلی</span></div>
-        <button class="icon-button" id="settingsToggle" aria-label="تنظیمات">⚙</button>
+        <div class="topbar-start">
+          <button class="icon-button menu-button" id="menuToggle" aria-label="باز کردن منو">☰</button>
+          <div class="breadcrumb"><span>فضای کاری</span><span class="crumb-divider">/</span><strong>گفت‌وگو با AF4</strong></div>
+        </div>
+        <div class="topbar-actions">
+          <span class="connection-pill"><span class="status-dot"></span><span>متصل</span></span>
+          <button class="icon-button theme-button" id="themeToggle" aria-label="تغییر تم" title="تغییر حالت روشن و تاریک">☾</button>
+          <button class="icon-button settings-button" id="settingsToggle" aria-label="تنظیمات" title="تنظیمات">⚙</button>
+          <button class="profile-chip" id="profileButton" aria-label="پروفایل کاربر"><span class="avatar">ع</span><span class="profile-chip-text"><strong>عباس</strong><small>سازندهٔ AF4</small></span><span class="chevron">⌄</span></button>
+        </div>
       </header>
+
       <section class="chat-area" id="chatArea" aria-live="polite">
         <div class="welcome" id="welcome">
-          <div class="welcome-orb">✦</div><p class="eyebrow">فضای شخصی تو</p>
-          <h1>سلام رفیق، من <span>AF4 AI</span> هستم.</h1>
-          <p class="welcome-copy">چند سرویس هوش مصنوعی پشت‌صحنه؛ اگر یکی موقتاً در دسترس نباشد، به سرویس بعدی می‌روم.</p>
+          <div class="welcome-brand"><span class="welcome-logo"><span>AF</span><i>4</i></span><span class="welcome-spark">✦</span></div>
+          <div class="eyebrow"><span class="eyebrow-line"></span> فضای هوشمند اختصاصی تو <span class="eyebrow-line"></span></div>
+          <h1>سلام عباس،<br><span class="headline-gradient">امروز چی می‌سازیم؟</span></h1>
+          <p class="welcome-copy">ایده‌هات رو به برنامه تبدیل کن. از ساخت محصول و یادگیری هوش مصنوعی تا کدنویسی و توسعهٔ پروژه‌های AF4؛ قدم‌به‌قدم کنارت هستم.</p>
           <div class="suggestions">
-            <button class="suggestion" data-prompt="برای ساخت AF4 AI از کجا شروع کنیم؟">🚀 ساخت پروژه رو شروع کنیم</button>
-            <button class="suggestion" data-prompt="یک برنامه یادگیری برنامه‌نویسی برای مبتدی‌ها بده">🧠 برنامه یادگیری بساز</button>
-            <button class="suggestion" data-prompt="چطور قابلیت‌های جدید به دستیارم اضافه کنم؟">🧩 قابلیت‌های جدید</button>
+            <button class="suggestion" data-prompt="برای توسعه حرفه‌ای AF4-AI یک نقشه راه مرحله‌به‌مرحله طراحی کن."><span class="suggestion-icon violet">✦</span><span><strong>توسعهٔ AF4-AI</strong><small>قابلیت‌های حرفه‌ای اضافه کنیم</small></span><span class="suggestion-arrow">↗</span></button>
+            <button class="suggestion" data-prompt="کمکم کن یک ایده تولیدی کم‌هزینه را به محصول قابل فروش تبدیل کنم."><span class="suggestion-icon orange">↗</span><span><strong>ایده تا درآمد</strong><small>از تولید تا فروش محصول</small></span><span class="suggestion-arrow">↗</span></button>
+            <button class="suggestion" data-prompt="یک برنامه ساده و عملی برای یادگیری برنامه‌نویسی و ساخت ابزارهای هوش مصنوعی بچین."><span class="suggestion-icon blue">⌘</span><span><strong>یادگیری و ساخت</strong><small>از مبتدی تا سازنده</small></span><span class="suggestion-arrow">↗</span></button>
+            <button class="suggestion" data-prompt="برای پروژه اکسپرت معاملاتی AF4 در متاتریدر ۵، قدم بعدی را مشخص کن."><span class="suggestion-icon green">⌁</span><span><strong>پروژهٔ معاملاتی AF4</strong><small>بررسی و بهبود اکسپرت</small></span><span class="suggestion-arrow">↗</span></button>
           </div>
-        </div><div id="messages" class="messages"></div>
+          <div class="welcome-foot"><span>✧</span> دستیار شخصی تو، برای ایده‌هایی که ارزش ساختن دارند</div>
+        </div>
+        <div id="messages" class="messages"></div>
       </section>
-      <form class="composer-wrap" id="chatForm"><div class="composer"><textarea id="messageInput" rows="1" placeholder="پیامت رو برای AF4 AI بنویس..." aria-label="پیام شما"></textarea><button class="send-button" type="submit" aria-label="ارسال پیام">↑</button></div><p class="disclaimer">زیر هر پاسخ، سرویس و مدل استفاده‌شده نمایش داده می‌شود.</p></form>
+
+      <form class="composer-wrap" id="chatForm">
+        <div class="composer">
+          <button type="button" class="composer-tool" id="composerPlus" aria-label="راهنما" title="راهنما">＋</button>
+          <textarea id="messageInput" rows="1" placeholder="هر چیزی توی ذهنته از من بپرس..." aria-label="پیام شما"></textarea>
+          <div class="composer-end"><span class="composer-hint">↵ ارسال</span><button class="send-button" type="submit" aria-label="ارسال پیام" title="ارسال پیام">↑</button></div>
+        </div>
+        <p class="disclaimer">AF4 AI ممکن است اشتباه کند؛ برای تصمیم‌های مهم، پاسخ‌ها را بررسی کن.</p>
+      </form>
     </main>
+
     <aside class="settings-panel" id="settingsPanel" hidden>
-      <div class="settings-heading"><h2>شخصی‌سازی</h2><button class="icon-button" id="settingsClose" aria-label="بستن تنظیمات">×</button></div>
+      <div class="settings-heading"><div><span class="settings-kicker">PREFERENCES</span><h2>تنظیمات دستیار</h2></div><button class="icon-button" id="settingsClose" aria-label="بستن تنظیمات">×</button></div>
+      <div class="settings-section-title">شخصی‌سازی</div>
       <label for="assistantName">نام دستیار</label><input id="assistantName" value="AF4 AI" maxlength="32">
-      <label for="apiBaseUrl">آدرس سرور هوش مصنوعی</label><input id="apiBaseUrl" type="url" inputmode="url" placeholder="https://af4-ai.onrender.com" autocomplete="url">
-      <p class="settings-note">کلیدهای API داخل این صفحه وارد نمی‌شوند؛ فقط در تنظیمات محرمانه سرور قرار می‌گیرند.</p>
-      <label for="accentColor">رنگ اصلی</label><select id="accentColor"><option value="purple">بنفش</option><option value="blue">آبی</option><option value="green">سبز</option><option value="pink">صورتی</option></select>
+      <label for="accentColor">رنگ اصلی</label><select id="accentColor"><option value="purple">بنفش AF4</option><option value="blue">آبی</option><option value="green">سبز</option><option value="pink">صورتی</option></select>
+      <label for="themeSelect">ظاهر برنامه</label><select id="themeSelect"><option value="light">روشن</option><option value="dark">تاریک</option><option value="system">مطابق دستگاه</option></select>
       <label class="switch-row"><span>حالت فشرده</span><input id="compactMode" type="checkbox"></label>
-      <p class="settings-note">تاریخچه و ظاهر فعلاً در همین مرورگر ذخیره می‌شوند.</p>
+      <div class="settings-divider"></div>
+      <div class="settings-section-title">اتصال</div>
+      <label for="apiBaseUrl">آدرس سرور</label><input id="apiBaseUrl" type="url" inputmode="url" placeholder="https://af4-ai.onrender.com" autocomplete="url">
+      <p class="settings-note">کلیدهای محرمانه فقط روی سرور نگهداری می‌شوند و نباید در این صفحه یا داخل پیام‌ها وارد شوند.</p>
+      <div class="settings-divider"></div>
+      <div class="settings-card"><span class="settings-card-icon">✦</span><div><strong>ساخته‌شده توسط عباس فرافانی</strong><p>AF4 AI پروژهٔ شخصی توست. تنظیمات ظاهری این دستگاه در مرورگر ذخیره می‌شود.</p></div></div>
+      <button class="settings-done" id="settingsDone">تمام شد</button>
     </aside>
+    <div class="mobile-scrim" id="mobileScrim"></div>
   </div>
   <script src="app.js"></script>
   <script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("/sw.js").catch(()=>{}));}</script>
