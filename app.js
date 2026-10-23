@@ -25,4 +25,4 @@ $("profileNav").addEventListener("click",()=>{closePanels();sendMessage("لطف�
 $("clearHistory").addEventListener("click",()=>{if(!sessions.length)return;if(confirm("همه گفت‌وگوهای ذخیره‌شده در این مرورگر پاک شوند؟")){sessions=[];persist();startNewChat();}});
 $("composerPlus").addEventListener("click",()=>{input.value=input.value?input.value+"\n":"کمکم کن این ایده را مرحله‌به‌مرحله بررسی کنم: ";input.focus();input.dispatchEvent(new Event("input"));});
 window.matchMedia?.("(prefers-color-scheme: dark)").addEventListener?.("change",()=>{if($("themeSelect").value==="system")applySettings();});
-applySettings();renderHistory();startNewChat();
+applySettings();renderHistory();
