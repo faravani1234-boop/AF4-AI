@@ -64,7 +64,7 @@ function priority(messages=[]){
  const fast=/\b(quick|brief|short|translate|summari[sz]e|simple)\b/i.test(text)||/ترجمه|خلاصه|کوتاه|ساده/i.test(text);
  const taskOrder=code?["anthropic","openai","openrouter","gemini","groq"]:deep?["openai","anthropic","gemini","openrouter","groq"]:fast?["groq","gemini","openrouter","openai","anthropic"]:["gemini","openai","groq","anthropic","openrouter"];
  const configured=(process.env.AI_PROVIDER_PRIORITY||process.env.AI_PROVIDER||"").split(",").map(x=>x.trim().toLowerCase()).filter(x=>providers[x]);
- return [...new Set([...taskOrder,...configured,...Object.keys(providers)])].filter(x=>providers[x]);
+ return [...new Set([...configured,...taskOrder,...Object.keys(providers)])].filter(x=>providers[x]);
 }
 function shouldCool(status,body){const s=String(body||"").toLowerCase();return status===429||status>=500||/quota|rate.?limit|resource_exhausted|overloaded|timeout|temporarily unavailable|billing|credit balance/.test(s);}
 function wantsGoogleSearch(messages=[]){
@@ -116,13 +116,14 @@ app.post("/api/chat",async(req,res)=>{
  const userContext=profileName||profileAbout?`\nاطلاعات پروفایل کاربر فعلی این دستگاه (اطلاعات او را با سازنده اشتباه نگیر):\n- نامی که کاربر گفته: ${profileName||"هنوز اعلام نکرده"}\n- اطلاعاتی که خودش برای یادآوری وارد کرده: ${profileAbout||"چیزی وارد نشده"}\nبا نامی که خودش انتخاب کرده خطابش کن. این پروفایل را فقط به‌عنوان زمینهٔ همین کاربر در نظر بگیر و جزئیات تأییدنشده را حدس نزن.`:"\nکاربر فعلی هنوز نامش را اعلام نکرده؛ محترمانه و بدون حدس زدن نام او پاسخ بده. نام سازنده را فقط در پاسخ به سؤال صریح دربارهٔ سازنده مطرح کن.";
  const input=[];
  for(const m of messages){if(!m||!["user","assistant"].includes(m.role)||typeof m.content!=="string")return res.status(400).json({error:"ساختار یکی از پیام‌ها معتبر نیست."});input.push({role:m.role,content:m.content.slice(0,12000)});}
- const requestDeadline=Date.now()+22000;
+ const requestDeadline=Date.now()+18000;
  const needsWeb=wantsGoogleSearch(input);
  const webContext=needsWeb?await searchWebWithoutKey(input):"";
  const webInstructions=needsWeb&&!webContext?"\nکاربر درخواست اطلاعات به‌روز یا پژوهش وب کرده است، اما جست‌وجوی وب در این درخواست نتیجه نداد؛ صادقانه بگو نتوانستی وب را بررسی کنی و اطلاعات تازه را حدس نزن.":"";
  const contextualInstructions=systemInstructions+userContext+(webContext||"")+webInstructions;
  const order=priority(input);let lastError="فعلاً هیچ سرویس آماده‌ای با کلید معتبر پیدا نشد.";let openRouterDailyLimit=false;
  for(const name of order){
+  if(Date.now()>=requestDeadline)break;
   const p=providers[name];
   const key=p.key();
   if((!key&&name!=="pollinations")||Date.now()<(cooldowns.get(name)||0))continue;
@@ -131,6 +132,7 @@ app.post("/api/chat",async(req,res)=>{
    : [p.model()];
   let providerHadTransientFailure=false;
   for(const model of models){
+   if(Date.now()>=requestDeadline)break;
    try{
     const isAnthropic=name==="anthropic";
     const useGoogleSearch=name==="gemini"&&wantsGoogleSearch(input);
@@ -146,7 +148,7 @@ app.post("/api/chat",async(req,res)=>{
      :isAnthropic
       ?{model,max_tokens:1600,system:contextualInstructions,messages:input}
       :{model,messages:[{role:"system",content:contextualInstructions},...input],max_tokens:1600};
-    const response=await fetch(endpoint,{method:"POST",headers:requestHeaders,body:JSON.stringify(payload),signal:AbortSignal.timeout(Math.min(8000,Math.max(1000,requestDeadline-Date.now())))});
+    const response=await fetch(endpoint,{method:"POST",headers:requestHeaders,body:JSON.stringify(payload),signal:AbortSignal.timeout(Math.min(5000,Math.max(1000,requestDeadline-Date.now())))});
     const raw=await response.text();
     let data={};try{data=JSON.parse(raw)}catch{}
     if(!response.ok||data?.error){
@@ -201,6 +203,7 @@ app.post("/api/chat",async(req,res)=>{
   // Cool down the provider only after all its candidate models failed.
   if(providerHadTransientFailure)cooldowns.set(name,Date.now()+30_000);
  }
+ if(Date.now()>=requestDeadline)lastError="زمان تلاش برای سرویس‌ها تمام شد؛ لطفاً دوباره تلاش کن یا یک سرویس معتبر اضافه کن.";
  const help=openRouterDailyLimit?" سهمیه روزانه OpenRouter تمام شده و مسیر جایگزین عمومی هم پاسخ نداده است؛ برای اتصال پایدارتر، یک کلید Gemini رایگان در متغیر GEMINI_API_KEY بخش Environment در Render تنظیم کن.":"";
  res.status(503).json({error:"همه سرویس‌های تنظیم‌شده فعلاً در دسترس نیستند. "+lastError+help});
 });
