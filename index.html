@@ -3,13 +3,13 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#f7f8fc">
+  <meta name="theme-color" content="#0b0b12">
   <meta name="description" content="AF4 AI — دستیار هوش مصنوعی شخصی عباس فراوانی">
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="icon" href="/icon.svg" type="image/svg+xml">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>AF4 AI | دستیار شخصی</title>
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -85,9 +85,9 @@
       <p class="settings-note">پروفایل و گفت‌وگوها روی همین دستگاه ذخیره می‌شوند. فعلاً بین گوشی‌های مختلف همگام‌سازی نمی‌شوند.</p>
       <div class="settings-divider"></div>
       <div class="settings-section-title">شخصی‌سازی</div>
-      <label for="assistantName">نام دستیار</label><input id="assistantName" value="AF4 AI" maxlength="32">
+      <label for="assistantName" class="locked-brand-label">هویت دستیار</label><input id="assistantName" value="AF4 AI" maxlength="32" readonly aria-readonly="true">
       <label for="accentColor">رنگ اصلی</label><select id="accentColor"><option value="purple">بنفش AF4</option><option value="blue">آبی</option><option value="green">سبز</option><option value="pink">صورتی</option></select>
-      <label for="themeSelect">ظاهر برنامه</label><select id="themeSelect"><option value="light">روشن</option><option value="dark">تاریک</option><option value="system">مطابق دستگاه</option></select>
+      <label for="themeSelect">ظاهر برنامه</label><select id="themeSelect"><option value="dark" selected>تاریک</option></select>
       <label class="switch-row"><span>حالت فشرده</span><input id="compactMode" type="checkbox"></label>
       <div class="settings-divider"></div>
       <div class="settings-section-title">اتصال</div>
