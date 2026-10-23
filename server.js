@@ -32,12 +32,25 @@ const systemInstructions = `تو AF4 AI هستی؛ دستیار هوش مصنو�
 - هیچ‌وقت کلید API، رمز عبور یا اطلاعات محرمانه را در پاسخ بازگو نکن. هرگز ادعا نکن مستقیماً به سرورهای ChatGPT/OpenAI وصل هستی؛ فقط از سرویس و مدل واقعی‌ای که سرور گزارش می‌کند نام ببر.
 - اگر چیزی را واقعاً اجرا، ذخیره، جست‌وجو یا آزمایش نکرده‌ای، نگو انجامش داده‌ای. `;
 const cooldowns = new Map();
+const keyIndexes = new Map();
+function getKey(provider, legacyEnv) {
+ const many = (process.env[provider.toUpperCase()+"_API_KEYS"] || "").split(",").map(x=>x.trim()).filter(Boolean);
+ const legacy = process.env[legacyEnv]?.trim();
+ const keys = [...new Set([...many, ...(legacy ? [legacy] : [])])];
+ if (!keys.length) return "";
+ const index = keyIndexes.get(provider) || 0;
+ keyIndexes.set(provider, (index + 1) % keys.length);
+ return keys[index % keys.length];
+}
+function hasKeys(provider, legacyEnv) {
+ return Boolean((process.env[provider.toUpperCase()+"_API_KEYS"] || "").split(",").some(x=>x.trim()) || process.env[legacyEnv]?.trim());
+}
 const providers = {
- gemini:{key:()=>process.env.GEMINI_API_KEY, model:()=>process.env.GEMINI_MODEL||process.env.AI_MODEL||"gemini-2.5-flash", url:"https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"},
- groq:{key:()=>process.env.GROQ_API_KEY, model:()=>process.env.GROQ_MODEL||"llama-3.3-70b-versatile", url:"https://api.groq.com/openai/v1/chat/completions"},
- openai:{key:()=>process.env.OPENAI_API_KEY, model:()=>process.env.OPENAI_MODEL||"gpt-4.1-mini", url:"https://api.openai.com/v1/chat/completions"},
- anthropic:{key:()=>process.env.ANTHROPIC_API_KEY, model:()=>process.env.ANTHROPIC_MODEL||"claude-sonnet-4-5", url:"https://api.anthropic.com/v1/messages"},
- openrouter:{key:()=>process.env.OPENROUTER_API_KEY, model:()=>process.env.OPENROUTER_MODEL||"openrouter/free", url:"https://openrouter.ai/api/v1/chat/completions"}
+ gemini:{key:()=>getKey("gemini","GEMINI_API_KEY"), model:()=>process.env.GEMINI_MODEL||process.env.AI_MODEL||"gemini-2.5-flash", url:"https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"},
+ groq:{key:()=>getKey("groq","GROQ_API_KEY"), model:()=>process.env.GROQ_MODEL||"llama-3.3-70b-versatile", url:"https://api.groq.com/openai/v1/chat/completions"},
+ openai:{key:()=>getKey("openai","OPENAI_API_KEY"), model:()=>process.env.OPENAI_MODEL||"gpt-4.1-mini", url:"https://api.openai.com/v1/chat/completions"},
+ anthropic:{key:()=>getKey("anthropic","ANTHROPIC_API_KEY"), model:()=>process.env.ANTHROPIC_MODEL||"claude-sonnet-4-5", url:"https://api.anthropic.com/v1/messages"},
+ openrouter:{key:()=>getKey("openrouter","OPENROUTER_API_KEY"), model:()=>process.env.OPENROUTER_MODEL||"openrouter/free", url:"https://openrouter.ai/api/v1/chat/completions"}
 };
 // انتخاب مدل بر اساس نوع درخواست؛ در صورت خطا، سرویس بعدی امتحان می‌شود.
 function priority(messages=[]){
@@ -51,7 +64,7 @@ function priority(messages=[]){
 }
 function shouldCool(status,body){const s=String(body||"").toLowerCase();return status===429||status>=500||/quota|rate.?limit|resource_exhausted|overloaded|timeout|temporarily unavailable|billing|credit balance/.test(s);}
 function safeError(value){let s=String(value||"خطای ناشناخته");for(const name of Object.keys(providers)){const k=providers[name].key();if(k)s=s.split(k).join("[کلید محرمانه پنهان شد]");}return s.replace(/sk-or-v1-[a-f0-9]{20,}/gi,"[کلید محرمانه پنهان شد]").slice(0,220);}
-app.get("/api/health",(_req,res)=>{const order=priority();res.json({ok:true,assistant:"AF4 AI",owner:"Abbas Faravani",providers:order.map(name=>({name,configured:Boolean(providers[name].key()),available:Date.now()>=(cooldowns.get(name)||0)}))});});
+app.get("/api/health",(_req,res)=>{const order=priority();res.json({ok:true,assistant:"AF4 AI",owner:"Abbas Faravani",providers:order.map(name=>({name,configured:hasKeys(name, name.toUpperCase()+"_API_KEY"),available:Date.now()>=(cooldowns.get(name)||0)}))});});
 app.post("/api/chat",async(req,res)=>{
  const messages=req.body?.messages;
  if(!Array.isArray(messages)||!messages.length||messages.length>40)return res.status(400).json({error:"ساختار پیام‌ها معتبر نیست."});
@@ -76,8 +89,8 @@ app.post("/api/chat",async(req,res)=>{
    const raw=await response.text();let data={};try{data=JSON.parse(raw)}catch{}
    if(!response.ok){
     lastError=safeError(data?.error?.message||data?.message||raw||("HTTP "+response.status));
-    const wait=response.status===429?5*60_000:(response.status>=500?60_000:10*60_000);
-    cooldowns.set(name,Date.now()+wait);
+    const wait=response.status===429?5*60_000:(response.status>=500?60_000:((response.status===401||response.status===403)?0:10*60_000));
+    if(wait)cooldowns.set(name,Date.now()+wait); else cooldowns.delete(name);
     console.warn("Provider rejected request; trying fallback:",name,response.status);
     continue;
    }
