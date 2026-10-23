@@ -69,3 +69,6 @@ body{background:var(--bg);color:var(--text)}
 .composer:focus-within{border-color:#6b50b1;box-shadow:0 0 0 3px #8057f21a}
 .status-dot{background:#55d6a3}
 @media(max-width:800px){.topbar{background:rgba(13,14,21,.96)}.settings-panel{background:#11121b}}
+
+/* AF4 keeps a single consistent dark theme; no light-mode toggle. */
+.theme-button{display:none!important}
