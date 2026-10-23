@@ -116,7 +116,7 @@ app.post("/api/chat",async(req,res)=>{
  const userContext=profileName||profileAbout?`\nاطلاعات پروفایل کاربر فعلی این دستگاه (اطلاعات او را با سازنده اشتباه نگیر):\n- نامی که کاربر گفته: ${profileName||"هنوز اعلام نکرده"}\n- اطلاعاتی که خودش برای یادآوری وارد کرده: ${profileAbout||"چیزی وارد نشده"}\nبا نامی که خودش انتخاب کرده خطابش کن. این پروفایل را فقط به‌عنوان زمینهٔ همین کاربر در نظر بگیر و جزئیات تأییدنشده را حدس نزن.`:"\nکاربر فعلی هنوز نامش را اعلام نکرده؛ محترمانه و بدون حدس زدن نام او پاسخ بده. نام سازنده را فقط در پاسخ به سؤال صریح دربارهٔ سازنده مطرح کن.";
  const input=[];
  for(const m of messages){if(!m||!["user","assistant"].includes(m.role)||typeof m.content!=="string")return res.status(400).json({error:"ساختار یکی از پیام‌ها معتبر نیست."});input.push({role:m.role,content:m.content.slice(0,12000)});}
- const requestDeadline=Date.now()+18000;
+ const requestDeadline=Date.now()+25000;
  const needsWeb=wantsGoogleSearch(input);
  const webContext=needsWeb?await searchWebWithoutKey(input):"";
  const webInstructions=needsWeb&&!webContext?"\nکاربر درخواست اطلاعات به‌روز یا پژوهش وب کرده است، اما جست‌وجوی وب در این درخواست نتیجه نداد؛ صادقانه بگو نتوانستی وب را بررسی کنی و اطلاعات تازه را حدس نزن.":"";
@@ -148,7 +148,7 @@ app.post("/api/chat",async(req,res)=>{
      :isAnthropic
       ?{model,max_tokens:1600,system:contextualInstructions,messages:input}
       :{model,messages:[{role:"system",content:contextualInstructions},...input],max_tokens:1600};
-    const response=await fetch(endpoint,{method:"POST",headers:requestHeaders,body:JSON.stringify(payload),signal:AbortSignal.timeout(Math.min(5000,Math.max(1000,requestDeadline-Date.now())))});
+    const response=await fetch(endpoint,{method:"POST",headers:requestHeaders,body:JSON.stringify(payload),signal:AbortSignal.timeout(Math.min(name==="pollinations"?12000:7000,Math.max(1000,requestDeadline-Date.now())))});
     const raw=await response.text();
     let data={};try{data=JSON.parse(raw)}catch{}
     if(!response.ok||data?.error){
