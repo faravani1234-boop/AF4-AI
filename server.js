@@ -77,30 +77,61 @@ app.post("/api/chat",async(req,res)=>{
  for(const m of messages){if(!m||!["user","assistant"].includes(m.role)||typeof m.content!=="string")return res.status(400).json({error:"ساختار یکی از پیام‌ها معتبر نیست."});input.push({role:m.role,content:m.content.slice(0,12000)});}
  const order=priority(input);let lastError="فعلاً هیچ سرویس آماده‌ای با کلید معتبر پیدا نشد.";
  for(const name of order){
-  const p=providers[name],key=p.key();if(!key||Date.now()<(cooldowns.get(name)||0))continue;
-  try{
-   const isAnthropic=name==="anthropic";
-   const headers=isAnthropic
-    ?{"x-api-key":key,"anthropic-version":"2023-06-01","content-type":"application/json"}
-    :{"Authorization":"Bearer "+key,"Content-Type":"application/json",...(name==="openrouter"?{"HTTP-Referer":"https://af4-ai.onrender.com","X-Title":"AF4 AI"}:{})};
-   const payload=isAnthropic
-    ?{model:p.model(),max_tokens:1600,system:systemInstructions+userContext,messages:input}
-    :{model:p.model(),messages:[{role:"system",content:systemInstructions+userContext},...input],max_tokens:1600};
-   const response=await fetch(p.url,{method:"POST",headers,body:JSON.stringify(payload),signal:AbortSignal.timeout(45000)});
-   const raw=await response.text();let data={};try{data=JSON.parse(raw)}catch{}
-   if(!response.ok){
-    lastError=safeError(data?.error?.message||data?.message||raw||("HTTP "+response.status));
-    const wait=response.status===429?5*60_000:(response.status>=500?60_000:((response.status===401||response.status===403)?0:10*60_000));
-    if(wait)cooldowns.set(name,Date.now()+wait); else cooldowns.delete(name);
-    console.warn("Provider rejected request; trying fallback:",name,response.status);
-    continue;
+  const p=providers[name];
+  const key=p.key();
+  if(!key||Date.now()<(cooldowns.get(name)||0))continue;
+  const models=name==="openrouter"
+   ? [...new Set([p.model(),"nvidia/nemotron-3-ultra:free","nvidia/nemotron-3.5-super-vl:free","poolside/laguna-s-2.1:free","dots-studio/dots-3-note-preview:free"])]
+   : [p.model()];
+  let providerHadTransientFailure=false;
+  for(const model of models){
+   try{
+    const isAnthropic=name==="anthropic";
+    const headers=isAnthropic
+     ?{"x-api-key":key,"anthropic-version":"2023-06-01","content-type":"application/json"}
+     :{"Authorization":"Bearer "+key,"Content-Type":"application/json",...(name==="openrouter"?{"HTTP-Referer":"https://af4-ai.onrender.com","X-Title":"AF4 AI"}:{})};
+    const payload=isAnthropic
+     ?{model,max_tokens:1600,system:systemInstructions+userContext,messages:input}
+     :{model,messages:[{role:"system",content:systemInstructions+userContext},...input],max_tokens:1600};
+    const response=await fetch(p.url,{method:"POST",headers,body:JSON.stringify(payload),signal:AbortSignal.timeout(45000)});
+    const raw=await response.text();
+    let data={};try{data=JSON.parse(raw)}catch{}
+    if(!response.ok||data?.error){
+     const status=response.status||Number(data?.error?.code)||502;
+     lastError=safeError(data?.error?.message||data?.message||raw||("HTTP "+status));
+     if(shouldCool(status,lastError)||status===408){
+      providerHadTransientFailure=true;
+      console.warn("Provider/model temporarily unavailable; trying fallback:",name,model,status);
+     }else{
+      console.warn("Provider/model rejected request; trying fallback:",name,model,status);
+     }
+     continue;
+    }
+    const choice=data?.choices?.[0];
+    let reply=isAnthropic
+     ?data.content?.filter(x=>x.type==="text").map(x=>x.text).join("\n")
+     :(choice?.message?.content??choice?.text??data?.output_text);
+    if(Array.isArray(reply))reply=reply.map(part=>typeof part==="string"?part:(part?.text||part?.content||"")).filter(Boolean).join("\n");
+    if(typeof reply!=="string"||!reply.trim()){
+     lastError="مدل پاسخ متنی خالی برگرداند";
+     console.warn("Provider/model returned no text; trying fallback:",name,model);
+     continue;
+    }
+    if(/^\s*(?:(?:user\s+safety|safety|moderation)\s*:\s*(?:safe|unsafe|allowed|blocked)\s*)+$/i.test(reply.trim())){
+     lastError="مدل به‌جای پاسخ، برچسب ایمنی برگرداند";
+     console.warn("Provider/model returned moderation metadata; trying fallback:",name,model);
+     continue;
+    }
+    cooldowns.delete(name);
+    return res.json({reply:reply.trim(),provider:name,model});
+   }catch(e){
+    lastError=safeError(e?.name==="TimeoutError"?"مهلت پاسخ تمام شد":(e?.message||"خطای اتصال"));
+    providerHadTransientFailure=true;
+    console.warn("Provider/model failed; trying fallback:",name,model,e?.name||"Error");
    }
-   const reply=isAnthropic?data.content?.filter(x=>x.type==="text").map(x=>x.text).join("\n"):data.choices?.[0]?.message?.content;
-   if(typeof reply!=="string"||!reply.trim()){lastError="پاسخ متنی دریافت نشد";cooldowns.set(name,Date.now()+60_000);continue;}
-   // Some free routed models return internal moderation labels instead of an answer.
-   if(/^\s*(?:(?:user\s+safety|safety|moderation)\s*:\s*(?:safe|unsafe|allowed|blocked)\s*)+$/i.test(reply.trim())){lastError="مدل به‌جای پاسخ، برچسب ایمنی برگرداند";cooldowns.set(name,Date.now()+5*60_000);console.warn("Provider returned moderation metadata instead of an answer:",name);continue;}
-   return res.json({reply:reply.trim(),provider:name,model:p.model()});
-  }catch(e){lastError=safeError(e?.name==="TimeoutError"?"مهلت پاسخ تمام شد":(e?.message||"خطای اتصال"));cooldowns.set(name,Date.now()+60_000);console.warn("Provider failed:",name,e?.name||"Error");}
+  }
+  // Cool down the provider only after all its candidate models failed.
+  if(providerHadTransientFailure)cooldowns.set(name,Date.now()+30_000);
  }
  res.status(503).json({error:"همه سرویس‌های تنظیم‌شده فعلاً در دسترس نیستند. "+lastError});
 });
