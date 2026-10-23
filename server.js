@@ -63,7 +63,7 @@ function priority(messages=[]){
  return [...new Set([...taskOrder,...configured,...Object.keys(providers)])].filter(x=>providers[x]);
 }
 function shouldCool(status,body){const s=String(body||"").toLowerCase();return status===429||status>=500||/quota|rate.?limit|resource_exhausted|overloaded|timeout|temporarily unavailable|billing|credit balance/.test(s);}
-function safeError(value){let s=String(value||"خطای ناشناخته");for(const name of Object.keys(providers)){const k=providers[name].key();if(k)s=s.split(k).join("[کلید محرمانه پنهان شد]");}return s.replace(/sk-or-v1-[a-f0-9]{20,}/gi,"[کلید محرمانه پنهان شد]").slice(0,220);}
+function safeError(value){let s=String(value||"خطای ناشناخته");for(const name of Object.keys(providers)){const env=name.toUpperCase()+"_API_KEYS";const all=[...(process.env[env]||"").split(",").map(x=>x.trim()).filter(Boolean),process.env[name.toUpperCase()+"_API_KEY"]].filter(Boolean);for(const k of all)s=s.split(k).join("[کلید محرمانه پنهان شد]");}return s.replace(/sk-or-v1-[a-f0-9]{20,}/gi,"[کلید محرمانه پنهان شد]").slice(0,220);}
 app.get("/api/health",(_req,res)=>{const order=priority();res.json({ok:true,assistant:"AF4 AI",owner:"Abbas Faravani",providers:order.map(name=>({name,configured:hasKeys(name, name.toUpperCase()+"_API_KEY"),available:Date.now()>=(cooldowns.get(name)||0)}))});});
 app.post("/api/chat",async(req,res)=>{
  const messages=req.body?.messages;
