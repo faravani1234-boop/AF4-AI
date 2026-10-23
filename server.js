@@ -138,7 +138,7 @@ app.post("/api/chat",async(req,res)=>{
     const useGoogleSearch=name==="gemini"&&wantsGoogleSearch(input);
     const headers=isAnthropic
      ?{"x-api-key":key,"anthropic-version":"2023-06-01","content-type":"application/json"}
-     :{...(name==="pollinations"?{}:{"Authorization":"Bearer "+key}),"Content-Type":"application/json",...(name==="openrouter"?{"HTTP-Referer":"https://af4-ai.onrender.com","X-Title":"AF4 AI"}:{})};
+     :{"Authorization":"Bearer "+key,"Content-Type":"application/json",...(name==="openrouter"?{"HTTP-Referer":"https://af4-ai.onrender.com","X-Title":"AF4 AI"}:{})};
     const endpoint=useGoogleSearch
      ?`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`
      :p.url;
