@@ -25,6 +25,7 @@
 - اگر کلید یک ارائه‌دهنده تنظیم نشده باشد، آن سرویس رد می‌شود. در صورت قطعی، محدودیت نرخ، خطای اعتبار/کلید یا خطای پاسخ، سرویس بعدی امتحان می‌شود و سرویس مشکل‌دار برای مدتی موقتاً کنار گذاشته می‌شود.
 - `AI_PROVIDER_PRIORITY`: اختیاری؛ فهرست ارائه‌دهنده‌های ترجیحی با کاما، مانند `gemini,groq,openai,anthropic,openrouter`. مسیریاب همچنان اولویت نوع درخواست را در نظر می‌گیرد و بقیه را برای پشتیبانی نگه می‌دارد.
 - `GEMINI_API_KEY` و اختیاری `GEMINI_MODEL`: Google Gemini؛ مدل پیش‌فرض `gemini-2.5-flash`
+- برای چرخش خودکار بین چند کلید از متغیرهای اختیاری `GEMINI_API_KEYS`، `GROQ_API_KEYS`، `OPENAI_API_KEYS`، `ANTHROPIC_API_KEYS` و `OPENROUTER_API_KEYS` استفاده کن؛ کلیدها را با کاما جدا کن. متغیر تک‌کلیدی قدیمی همچنان پشتیبانی می‌شود. کلیدهای چندگانه و تک‌کلیدی را هم‌زمان در یک فهرست تکراری وارد نکن.
 - `GROQ_API_KEY` و اختیاری `GROQ_MODEL`: Groq؛ مدل پیش‌فرض `llama-3.3-70b-versatile`
 - `OPENAI_API_KEY` و اختیاری `OPENAI_MODEL`: OpenAI API؛ مدل پیش‌فرض `gpt-4.1-mini`
 - `ANTHROPIC_API_KEY` و اختیاری `ANTHROPIC_MODEL`: Anthropic API؛ مدل پیش‌فرض `claude-sonnet-4-5`
