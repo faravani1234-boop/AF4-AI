@@ -32,3 +32,10 @@ body.dark{color-scheme:dark;--bg:#11121a;--surface:#191a25;--sidebar:#14151f;--s
 #installButton{color:var(--accent)}
 body.dark .onboarding-backdrop{background:rgba(0,0,0,.72)}
 @media(max-width:480px){.onboarding-card{padding:23px 19px;border-radius:21px}.onboarding-card h2{font-size:21px}}
+
+
+/* Reliable retry action shown only when an answer could not be retrieved. */
+.message-retry{display:inline-flex;align-items:center;justify-content:center;margin-top:12px;padding:9px 16px;border:1px solid var(--accent,#7c5cff);border-radius:12px;background:transparent;color:inherit;font:inherit;font-size:.9rem;font-weight:700;cursor:pointer;transition:background .18s ease,transform .18s ease}
+.message-retry:hover{background:rgba(124,92,255,.12);transform:translateY(-1px)}
+.message-retry:focus-visible{outline:2px solid var(--accent,#7c5cff);outline-offset:3px}
+.message-retry:disabled{opacity:.55;cursor:wait}
