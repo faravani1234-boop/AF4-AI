@@ -11,6 +11,9 @@ on:
       - 'icon.svg'
       - 'capacitor.config.json'
       - '.github/workflows/android-apk.yml'
+concurrency:
+  group: af4-ai-android-${{ github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: write
 jobs:
