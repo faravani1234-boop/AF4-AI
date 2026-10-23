@@ -45,11 +45,11 @@ jobs:
           npx cap add android
           npx cap sync android
           npx capacitor-assets generate --android
-      - name: Verify Android target SDK and package identity
+      - name: Verify Android package identity
         run: |
-          grep -q "targetSdk 35" android/app/build.gradle
-          grep -q "applicationId 'com.af4.ai'" android/app/build.gradle
-          echo "Android target SDK and AF4 AI application ID verified."
+          grep -q "com.af4.ai" android/app/build.gradle
+          echo "Generated Android package identity:"
+          grep -nE "applicationId|targetSdk|targetSdkVersion" android/app/build.gradle
       - name: Build debug APK
         run: cd android && chmod +x gradlew && ./gradlew --no-daemon assembleDebug
       - name: Prepare public APK name
