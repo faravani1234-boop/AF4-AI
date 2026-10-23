@@ -7,106 +7,42 @@ import { fileURLToPath } from "node:url";
 
 const app = express();
 const port = Number(process.env.PORT || 3000);
-const provider = (process.env.AI_PROVIDER || (process.env.GEMINI_API_KEY ? "gemini" : process.env.OPENROUTER_API_KEY ? "openrouter" : "openai")).toLowerCase();
-const apiKey = provider === "gemini" ? process.env.GEMINI_API_KEY : provider === "openrouter" ? process.env.OPENROUTER_API_KEY : process.env.OPENAI_API_KEY;
-const model = process.env.AI_MODEL || (provider === "gemini" ? "gemini-2.5-flash" : provider === "openrouter" ? "openrouter/free" : (process.env.OPENAI_MODEL || "gpt-4.1-mini"));
-const webSearchEnabled = provider === "openai" && process.env.AF4_ENABLE_WEB_SEARCH !== "false";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-// Render runs Express behind a trusted reverse proxy. This lets rate limiting
-// use the client's forwarded address instead of triggering proxy validation errors.
 app.set("trust proxy", 1);
-
 app.use(helmet({ contentSecurityPolicy: false }));
-// The Android WebView uses a local file origin, so permit API requests from the app.
-// No secrets are exposed by this public API; rate limiting and input validation remain enabled.
-app.use((req, res, next) => {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  if (req.method === "OPTIONS") return res.sendStatus(204);
-  next();
-});
-app.use(express.json({ limit: "1mb" }));
+app.use((req,res,next)=>{res.setHeader("Access-Control-Allow-Origin","*");res.setHeader("Access-Control-Allow-Methods","GET, POST, OPTIONS");res.setHeader("Access-Control-Allow-Headers","Content-Type, Authorization");if(req.method==="OPTIONS")return res.sendStatus(204);next();});
+app.use(express.json({limit:"1mb"}));
 app.use(express.static(__dirname));
-app.use("/api/", rateLimit({ windowMs: 60_000, limit: 20, standardHeaders: true, legacyHeaders: false }));
+app.use("/api/",rateLimit({windowMs:60_000,limit:20,standardHeaders:true,legacyHeaders:false}));
 
-const systemInstructions = "تو AF4 AI هستی؛ دستیار شخصی هوش مصنوعی سازنده پروژه AF4 AI. با فارسی روان و طبیعی حرف بزن؛ اگر کاربر خودمانی نوشت، صمیمی اما دقیق و محترمانه جواب بده. پاسخ‌ها را کاربردی و روشن بده و برای فرد مبتدی مراحل ساده و قابل کپی ارائه کن. AF4 برند شخصی/تجاری کاربر است و پروژه‌های شناخته‌شده‌اش شامل AF4 AI، اکسپرت مدیریت ریسک متاتریدر ۵، تولید محصول، طراحی و ساخت، هوش مصنوعی و معامله‌گری است. فقط وقتی مرتبط است از این اطلاعات استفاده کن. اگر چیزی را نمی‌دانی یا حافظه‌ای در دسترس نیست، وانمود نکن که می‌دانی. اطلاعات روز را با جست‌وجوی وب بررسی کن وقتی ابزار فعال است. هرگز ادعا نکن چیزی را آزمایش کرده‌ای مگر واقعاً انجام شده باشد. کلیدها و اطلاعات محرمانه را افشا نکن.";
-
-app.get("/api/health", (_req, res) => {
-  res.json({ ok: true, assistant: "AF4 AI", provider, model, modelConfigured: Boolean(apiKey), webSearchEnabled });
+const systemInstructions="تو AF4 AI هستی؛ دستیار شخصی هوش مصنوعی. با فارسی روان و طبیعی پاسخ بده. برای فرد مبتدی مراحل ساده و قابل اجرا بده. اگر چیزی را نمی‌دانی، صادقانه بگو و ادعای انجام کار نکن. کلیدها و اطلاعات محرمانه را افشا نکن.";
+const cooldowns = new Map();
+const providers = {
+ gemini:{key:()=>process.env.GEMINI_API_KEY, model:()=>process.env.GEMINI_MODEL||"gemini-2.5-flash", url:"https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"},
+ groq:{key:()=>process.env.GROQ_API_KEY, model:()=>process.env.GROQ_MODEL||"llama-3.3-70b-versatile", url:"https://api.groq.com/openai/v1/chat/completions"},
+ openrouter:{key:()=>process.env.OPENROUTER_API_KEY, model:()=>process.env.OPENROUTER_MODEL||"openrouter/free", url:"https://openrouter.ai/api/v1/chat/completions"}
+};
+function priority(){const requested=(process.env.AI_PROVIDER_PRIORITY||process.env.AI_PROVIDER||"gemini,groq,openrouter").split(",").map(x=>x.trim().toLowerCase());return [...new Set([...requested,"gemini","groq","openrouter"])].filter(x=>providers[x]);}
+function shouldCool(status,body){const s=String(body||"").toLowerCase();return status===429||status>=500||/quota|rate.?limit|resource_exhausted|overloaded|timeout|temporarily unavailable/.test(s);}
+app.get("/api/health",(_req,res)=>{const order=priority();res.json({ok:true,assistant:"AF4 AI",providers:order.map(name=>({name,configured:Boolean(providers[name].key()),available:Date.now()>=(cooldowns.get(name)||0)}))});});
+app.post("/api/chat",async(req,res)=>{
+ const messages=req.body?.messages;
+ if(!Array.isArray(messages)||!messages.length||messages.length>40)return res.status(400).json({error:"ساختار پیام‌ها معتبر نیست."});
+ const input=[];
+ for(const m of messages){if(!m||!["user","assistant"].includes(m.role)||typeof m.content!=="string")return res.status(400).json({error:"ساختار یکی از پیام‌ها معتبر نیست."});input.push({role:m.role,content:m.content.slice(0,12000)});}
+ const order=priority();let lastError="فعلاً هیچ سرویس آماده‌ای با کلید معتبر پیدا نشد.";
+ for(const name of order){
+  const p=providers[name],key=p.key();if(!key||Date.now()<(cooldowns.get(name)||0))continue;
+  try{
+   const response=await fetch(p.url,{method:"POST",headers:{"Authorization":"Bearer "+key,"Content-Type":"application/json",...(name==="openrouter"?{"HTTP-Referer":"https://af4-ai.onrender.com","X-Title":"AF4 AI"}:{})},body:JSON.stringify({model:p.model(),messages:[{role:"system",content:systemInstructions},...input],max_tokens:1600}),signal:AbortSignal.timeout(45000)});
+   const raw=await response.text();let data={};try{data=JSON.parse(raw)}catch{}
+   if(!response.ok){lastError=data?.error?.message||raw||("HTTP "+response.status);if(shouldCool(response.status,lastError)){cooldowns.set(name,Date.now()+(response.status===429?5*60_000:60_000));console.warn("Provider cooldown:",name,response.status);continue;}return res.status(502).json({error:"سرویس "+name+" درخواست را نپذیرفت: "+String(lastError).slice(0,240)});}
+   const reply=data.choices?.[0]?.message?.content;
+   if(typeof reply!=="string"||!reply.trim()){lastError="پاسخ متنی دریافت نشد";cooldowns.set(name,Date.now()+60_000);continue;}
+   return res.json({reply:reply.trim(),provider:name,model:p.model()});
+  }catch(e){lastError=e?.name==="TimeoutError"?"مهلت پاسخ تمام شد":(e?.message||"خطای اتصال");cooldowns.set(name,Date.now()+60_000);console.warn("Provider failed:",name,e?.name||"Error");}
+ }
+ res.status(503).json({error:"همه سرویس‌های تنظیم‌شده فعلاً در دسترس نیستند. "+lastError});
 });
-
-app.post("/api/chat", async (req, res) => {
-  try {
-    if (!apiKey) {
-      const keyName = provider === "gemini" ? "GEMINI_API_KEY" : provider === "openrouter" ? "OPENROUTER_API_KEY" : "OPENAI_API_KEY";
-      return res.status(503).json({ error: `هنوز کلید ${keyName} روی سرور تنظیم نشده است. آن را در تنظیمات امن سرور قرار بده.` });
-    }
-    if (provider !== "gemini" && provider !== "openai" && provider !== "openrouter") {
-      return res.status(500).json({ error: "ارائه‌دهنده هوش مصنوعی در تنظیمات سرور معتبر نیست." });
-    }
-    const messages = req.body?.messages;
-    if (!Array.isArray(messages) || messages.length === 0 || messages.length > 40) {
-      return res.status(400).json({ error: "ساختار پیام‌ها معتبر نیست." });
-    }
-    const input = messages.map((m) => {
-      if (!m || !["user", "assistant"].includes(m.role) || typeof m.content !== "string") throw new Error("ساختار یکی از پیام‌ها معتبر نیست.");
-      return { role: m.role, content: m.content.slice(0, 12000) };
-    });
-
-    let endpoint, headers, payload;
-    if (provider === "gemini") {
-      endpoint = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
-      headers = { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" };
-      payload = {
-        model,
-        messages: [{ role: "system", content: systemInstructions }, ...input],
-        max_tokens: 1600
-      };
-    } else if (provider === "openrouter") {
-      endpoint = "https://openrouter.ai/api/v1/chat/completions";
-      headers = { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json", "HTTP-Referer": "https://af4-ai.onrender.com", "X-Title": "AF4 AI" };
-      payload = {
-        model,
-        messages: [{ role: "system", content: systemInstructions }, ...input],
-        max_tokens: 1600
-      };
-    } else {
-      endpoint = "https://api.openai.com/v1/responses";
-      headers = { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" };
-      payload = {
-        model,
-        instructions: systemInstructions,
-        input,
-        max_output_tokens: 1600,
-        ...(webSearchEnabled ? { tools: [{ type: "web_search" }] } : {})
-      };
-    }
-
-    const upstream = await fetch(endpoint, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(60_000)
-    });
-    const data = await upstream.json().catch(() => ({}));
-    if (!upstream.ok) {
-      console.error("AI provider request failed:", provider, upstream.status);
-      return res.status(502).json({ error: "ارتباط با سرویس هوش مصنوعی ناموفق بود. کلید API، سهمیه و نام مدل را بررسی کن." });
-    }
-    const reply = provider === "gemini" || provider === "openrouter"
-      ? data.choices?.[0]?.message?.content
-      : (Array.isArray(data.output)
-          ? data.output.flatMap(item => Array.isArray(item.content) ? item.content : []).filter(item => item.type === "output_text").map(item => item.text).join("\n")
-          : "");
-    if (typeof reply !== "string" || !reply.trim()) return res.status(502).json({ error: "پاسخ متنی از مدل دریافت نشد." });
-    res.json({ reply: reply.trim(), provider, model });
-  } catch (error) {
-    if (error?.message === "ساختار یکی از پیام‌ها معتبر نیست.") return res.status(400).json({ error: error.message });
-    console.error("AF4 AI chat error:", error?.name || "Error");
-    res.status(500).json({ error: "خطای داخلی رخ داد. لطفاً دوباره تلاش کن." });
-  }
-});
-app.get("*", (_req, res) => res.sendFile(path.join(__dirname, "index.html")));
-app.listen(port, () => console.log(`AF4 AI is running on port ${port}`));
+app.get("*",(_req,res)=>res.sendFile(path.join(__dirname,"index.html")));
+app.listen(port,()=>console.log("AF4 AI running on "+port));
