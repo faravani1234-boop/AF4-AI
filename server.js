@@ -42,9 +42,9 @@ const providers = {
 // انتخاب مدل بر اساس نوع درخواست؛ در صورت خطا، سرویس بعدی امتحان می‌شود.
 function priority(messages=[]){
  const text=messages.map(m=>String(m?.content||"")).join("\n").toLowerCase();
- const code=/\b(code|coding|program|programming|debug|javascript|typescript|python|github|repository|repo|api|sql|html|css|react|node|bug|stack trace|کد|کدنویسی|برنامه.?نویسی|باگ|خطا|گیت.?هاب|متاتریدر|mql5)\b/i.test(text);
- const deep=/\b(reason|reasoning|prove|proof|math|analy[sz]e|architecture|design system|research|strategy|compare|trade.?off|استدلال|تحلیل عمیق|اثبات|ریاضی|معماری|مقایسه|تحقیق)\b/i.test(text);
- const fast=/\b(quick|brief|short|translate|summari[sz]e|simple|ترجمه|خلاصه|کوتاه|ساده)\b/i.test(text);
+ const code=/\b(code|coding|program|programming|debug|javascript|typescript|python|github|repository|repo|api|sql|html|css|react|node|bug|stack trace|mql5)\b/i.test(text)||/کد|کدنویسی|برنامه.?نویسی|باگ|خطا|گیت.?هاب|متاتریدر/i.test(text);
+ const deep=/\b(reason|reasoning|prove|proof|math|analy[sz]e|architecture|design system|research|strategy|compare|trade.?off)\b/i.test(text)||/استدلال|تحلیل عمیق|اثبات|ریاضی|معماری|مقایسه|تحقیق/i.test(text);
+ const fast=/\b(quick|brief|short|translate|summari[sz]e|simple)\b/i.test(text)||/ترجمه|خلاصه|کوتاه|ساده/i.test(text);
  const taskOrder=code?["anthropic","openai","openrouter","gemini","groq"]:deep?["openai","anthropic","gemini","openrouter","groq"]:fast?["groq","gemini","openrouter","openai","anthropic"]:["gemini","openai","groq","anthropic","openrouter"];
  const configured=(process.env.AI_PROVIDER_PRIORITY||process.env.AI_PROVIDER||"").split(",").map(x=>x.trim().toLowerCase()).filter(x=>providers[x]);
  return [...new Set([...taskOrder,...configured,...Object.keys(providers)])].filter(x=>providers[x]);
