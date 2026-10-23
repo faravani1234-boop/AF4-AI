@@ -13,6 +13,10 @@ const model = process.env.AI_MODEL || (provider === "gemini" ? "gemini-2.5-flash
 const webSearchEnabled = provider === "openai" && process.env.AF4_ENABLE_WEB_SEARCH !== "false";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// Render runs Express behind a trusted reverse proxy. This lets rate limiting
+// use the client's forwarded address instead of triggering proxy validation errors.
+app.set("trust proxy", 1);
+
 app.use(helmet({ contentSecurityPolicy: false }));
 // The Android WebView uses a local file origin, so permit API requests from the app.
 // No secrets are exposed by this public API; rate limiting and input validation remain enabled.
