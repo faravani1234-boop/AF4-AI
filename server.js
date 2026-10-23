@@ -72,7 +72,7 @@ app.post("/api/chat",async(req,res)=>{
  const profile=req.body?.profile&&typeof req.body.profile==="object"?req.body.profile:{};
  const profileName=typeof profile.name==="string"?profile.name.trim().slice(0,60):"";
  const profileAbout=typeof profile.about==="string"?profile.about.trim().slice(0,1200):"";
- const userContext=profileName||profileAbout?`\nاطلاعات پروفایل کاربر فعلی این دستگاه (اطلاعات او را با سازنده اشتباه نگیر):\n- نامی که کاربر گفته: ${profileName||"هنوز اعلام نکرده"}\n- اطلاعاتی که خودش برای یادآوری وارد کرده: ${profileAbout||"چیزی وارد نشده"}\nبا نامی که خودش انتخاب کرده خطابش کن. این پروفایل را فقط به‌عنوان زمینهٔ همین کاربر در نظر بگیر و جزئیات تأییدنشده را حدس نزن.`:"\nکاربر فعلی هنوز نامش را اعلام نکرده؛ با احترام از او بپرس دوست دارد چه صدایش کنی. سازندهٔ برنامه همچنان عباس فراوانی است.";
+ const userContext=profileName||profileAbout?`\nاطلاعات پروفایل کاربر فعلی این دستگاه (اطلاعات او را با سازنده اشتباه نگیر):\n- نامی که کاربر گفته: ${profileName||"هنوز اعلام نکرده"}\n- اطلاعاتی که خودش برای یادآوری وارد کرده: ${profileAbout||"چیزی وارد نشده"}\nبا نامی که خودش انتخاب کرده خطابش کن. این پروفایل را فقط به‌عنوان زمینهٔ همین کاربر در نظر بگیر و جزئیات تأییدنشده را حدس نزن.`:"\nکاربر فعلی هنوز نامش را اعلام نکرده؛ محترمانه و بدون حدس زدن نام او پاسخ بده. نام سازنده را فقط در پاسخ به سؤال صریح دربارهٔ سازنده مطرح کن.";
  const input=[];
  for(const m of messages){if(!m||!["user","assistant"].includes(m.role)||typeof m.content!=="string")return res.status(400).json({error:"ساختار یکی از پیام‌ها معتبر نیست."});input.push({role:m.role,content:m.content.slice(0,12000)});}
  const order=priority(input);let lastError="فعلاً هیچ سرویس آماده‌ای با کلید معتبر پیدا نشد.";
@@ -97,6 +97,8 @@ app.post("/api/chat",async(req,res)=>{
    }
    const reply=isAnthropic?data.content?.filter(x=>x.type==="text").map(x=>x.text).join("\n"):data.choices?.[0]?.message?.content;
    if(typeof reply!=="string"||!reply.trim()){lastError="پاسخ متنی دریافت نشد";cooldowns.set(name,Date.now()+60_000);continue;}
+   // Some free routed models return internal moderation labels instead of an answer.
+   if(/^\s*(?:(?:user\s+safety|safety|moderation)\s*:\s*(?:safe|unsafe|allowed|blocked)\s*)+$/i.test(reply.trim())){lastError="مدل به‌جای پاسخ، برچسب ایمنی برگرداند";cooldowns.set(name,Date.now()+5*60_000);console.warn("Provider returned moderation metadata instead of an answer:",name);continue;}
    return res.json({reply:reply.trim(),provider:name,model:p.model()});
   }catch(e){lastError=safeError(e?.name==="TimeoutError"?"مهلت پاسخ تمام شد":(e?.message||"خطای اتصال"));cooldowns.set(name,Date.now()+60_000);console.warn("Provider failed:",name,e?.name||"Error");}
  }
