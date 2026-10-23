@@ -39,3 +39,33 @@ body.dark .onboarding-backdrop{background:rgba(0,0,0,.72)}
 .message-retry:hover{background:rgba(124,92,255,.12);transform:translateY(-1px)}
 .message-retry:focus-visible{outline:2px solid var(--accent,#7c5cff);outline-offset:3px}
 .message-retry:disabled{opacity:.55;cursor:wait}
+
+
+/* AF4 premium dark-first interface: restrained chrome, fixed brand identity. */
+:root{color-scheme:dark;--bg:#090a10;--surface:#11121b;--sidebar:#0d0e15;--surface2:#171824;--line:#252638;--line2:#33354a;--text:#f4f3fb;--muted:#a0a0b8;--muted2:#73758e;--accent:#9a78ff;--accent2:#8057f2;--soft:#201a36;--softline:#3b2d62;--user:#1b1730}
+body{background:var(--bg);color:var(--text)}
+.app-shell,.main-panel{background:var(--bg)}
+.topbar{background:rgba(15,16,24,.92);backdrop-filter:blur(18px)}
+.sidebar{background:linear-gradient(180deg,#0d0e16,#0a0b11)}
+.brand-mark,.welcome-logo{background:linear-gradient(145deg,#171329,#0e0f19);border:1px solid #54418c;box-shadow:0 0 0 1px #9a78ff16,0 8px 28px #5b35d52b}
+.brand-mark i,.welcome-logo i{color:#c4adff}
+.suggestion,.composer,.message.assistant,.settings-panel,.connection-pill{box-shadow:0 10px 34px #00000018}
+.suggestion{background:linear-gradient(145deg,#141520,#10111a)}
+.suggestion:hover{border-color:#6d52b4;box-shadow:0 12px 35px #6a43dc18}
+.send-button{background:linear-gradient(135deg,#a58aff,#7047e9);box-shadow:0 5px 18px #7047e933}
+.send-button:hover{background:linear-gradient(135deg,#b7a3ff,#815cf5)}
+.welcome-spark,.welcome-foot span{color:#f0c96b}
+.headline-gradient{background-image:linear-gradient(100deg,#c3adff,#9877ff 54%,#e9c56a)}
+.settings-panel #assistantName,.settings-panel #accentColor,.settings-panel #themeSelect,.settings-panel #compactMode,.settings-panel #apiBaseUrl,
+.settings-panel label[for="assistantName"],.settings-panel label[for="accentColor"],.settings-panel label[for="themeSelect"],
+.settings-panel label[for="apiBaseUrl"],.settings-panel .switch-row,.settings-panel .settings-divider:nth-of-type(2),
+.settings-panel .settings-divider:nth-of-type(3),.settings-panel .settings-note:nth-of-type(2){display:none!important}
+.settings-panel .settings-section-title:nth-of-type(2){display:none}
+.settings-panel .settings-card{border-color:#302748;background:linear-gradient(145deg,#191527,#11121b)}
+.settings-done{background:linear-gradient(135deg,#8f6cff,#6840db)}
+.icon-button{background:#141520;border-color:#292a3d;color:#c1bed4}
+.icon-button:hover{background:#211a36;border-color:#59448e;color:#c9b8ff}
+.composer{background:#11121b;border-color:#303146}
+.composer:focus-within{border-color:#6b50b1;box-shadow:0 0 0 3px #8057f21a}
+.status-dot{background:#55d6a3}
+@media(max-width:800px){.topbar{background:rgba(13,14,21,.96)}.settings-panel{background:#11121b}}
