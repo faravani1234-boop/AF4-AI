@@ -34,6 +34,7 @@ const systemInstructions = `تو AF4 AI هستی؛ دستیار هوش مصنو�
 - اگر چیزی را واقعاً اجرا، ذخیره، جست‌وجو یا آزمایش نکرده‌ای، نگو انجامش داده‌ای. `;
 const cooldowns = new Map();
 const keyIndexes = new Map();
+const OPENROUTER_DAILY_FREE_LIMIT_MS = 24 * 60 * 60 * 1000;
 function getKey(provider, legacyEnv) {
  const many = (process.env[provider.toUpperCase()+"_API_KEYS"] || "").split(",").map(x=>x.trim()).filter(Boolean);
  const legacy = process.env[legacyEnv]?.trim();
@@ -75,7 +76,7 @@ app.post("/api/chat",async(req,res)=>{
  const userContext=profileName||profileAbout?`\nاطلاعات پروفایل کاربر فعلی این دستگاه (اطلاعات او را با سازنده اشتباه نگیر):\n- نامی که کاربر گفته: ${profileName||"هنوز اعلام نکرده"}\n- اطلاعاتی که خودش برای یادآوری وارد کرده: ${profileAbout||"چیزی وارد نشده"}\nبا نامی که خودش انتخاب کرده خطابش کن. این پروفایل را فقط به‌عنوان زمینهٔ همین کاربر در نظر بگیر و جزئیات تأییدنشده را حدس نزن.`:"\nکاربر فعلی هنوز نامش را اعلام نکرده؛ محترمانه و بدون حدس زدن نام او پاسخ بده. نام سازنده را فقط در پاسخ به سؤال صریح دربارهٔ سازنده مطرح کن.";
  const input=[];
  for(const m of messages){if(!m||!["user","assistant"].includes(m.role)||typeof m.content!=="string")return res.status(400).json({error:"ساختار یکی از پیام‌ها معتبر نیست."});input.push({role:m.role,content:m.content.slice(0,12000)});}
- const order=priority(input);let lastError="فعلاً هیچ سرویس آماده‌ای با کلید معتبر پیدا نشد.";
+ const order=priority(input);let lastError="فعلاً هیچ سرویس آماده‌ای با کلید معتبر پیدا نشد.";let openRouterDailyLimit=false;
  for(const name of order){
   const p=providers[name];
   const key=p.key();
@@ -99,6 +100,13 @@ app.post("/api/chat",async(req,res)=>{
     if(!response.ok||data?.error){
      const status=response.status||Number(data?.error?.code)||502;
      lastError=safeError(data?.error?.message||data?.message||raw||("HTTP "+status));
+     if(name==="openrouter"&&/free-models-per-day/i.test(lastError)){
+      openRouterDailyLimit=true;
+      providerHadTransientFailure=false;
+      cooldowns.set(name,Date.now()+OPENROUTER_DAILY_FREE_LIMIT_MS);
+      console.warn("OpenRouter daily free-model quota exhausted; pausing retries for 24 hours.");
+      break;
+     }
      if(shouldCool(status,lastError)||status===408){
       providerHadTransientFailure=true;
       console.warn("Provider/model temporarily unavailable; trying fallback:",name,model,status);
@@ -133,7 +141,8 @@ app.post("/api/chat",async(req,res)=>{
   // Cool down the provider only after all its candidate models failed.
   if(providerHadTransientFailure)cooldowns.set(name,Date.now()+30_000);
  }
- res.status(503).json({error:"همه سرویس‌های تنظیم‌شده فعلاً در دسترس نیستند. "+lastError});
+ const help=openRouterDailyLimit?" سهمیه روزانه مدل‌های رایگان OpenRouter تمام شده است؛ برای ادامه بدون خرید اعتبار، یک کلید Gemini رایگان در متغیر GEMINI_API_KEY بخش Environment در Render تنظیم کن و سپس سرویس را دوباره منتشر کن.":"";
+ res.status(503).json({error:"همه سرویس‌های تنظیم‌شده فعلاً در دسترس نیستند. "+lastError+help});
 });
 app.get("*",(_req,res)=>res.sendFile(path.join(__dirname,"index.html")));
 app.listen(port,()=>console.log("AF4 AI running on "+port));
