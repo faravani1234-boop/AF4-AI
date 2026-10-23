@@ -67,6 +67,20 @@ function priority(messages=[]){
  return [...new Set([...taskOrder,...configured,...Object.keys(providers)])].filter(x=>providers[x]);
 }
 function shouldCool(status,body){const s=String(body||"").toLowerCase();return status===429||status>=500||/quota|rate.?limit|resource_exhausted|overloaded|timeout|temporarily unavailable|billing|credit balance/.test(s);}
+function wantsGoogleSearch(messages=[]){
+ const q=messages.filter(m=>m?.role==="user").map(m=>String(m.content||"")).join("\n").toLowerCase();
+ return /\\b(latest|current|today|right now|news|recent|search the web|google search|look up|research|sources|citations|this week|this year|price today|weather|who won|what happened)\\b/i.test(q)
+ || /الان|امروز|جدیدترین|آخرین|اخبار|خبرهای|به.?روز|جست.?وجو|سرچ|گوگل|تحقیق|منابع|لینک منبع|قیمت روز|این هفته|امسال|چه اتفاقی افتاد|بررسی کن|اطلاعات جدید/i.test(q);
+}
+function geminiGroundedPayload(messages, userContext, model){
+ return {
+  contents:messages.map(m=>({role:m.role==="assistant"?"model":"user",parts:[{text:m.content}]})),
+  systemInstruction:{parts:[{text:systemInstructions+userContext}]},
+  tools:[{google_search:{}}],
+  generationConfig:{maxOutputTokens:1600,temperature:0.7}
+ };
+}
+
 function safeError(value){let s=String(value||"خطای ناشناخته");for(const name of Object.keys(providers)){const env=name.toUpperCase()+"_API_KEYS";const all=[...(process.env[env]||"").split(",").map(x=>x.trim()).filter(Boolean),process.env[name.toUpperCase()+"_API_KEY"]].filter(Boolean);for(const k of all)s=s.split(k).join("[کلید محرمانه پنهان شد]");}return s.replace(/sk-or-v1-[a-f0-9]{20,}/gi,"[کلید محرمانه پنهان شد]").slice(0,220);}
 app.get("/api/health",(_req,res)=>{const order=priority();res.json({ok:true,assistant:"AF4 AI",owner:"Abbas Faravani",providers:order.map(name=>({name,configured:name==="pollinations"||hasKeys(name, name.toUpperCase()+"_API_KEY"),available:Date.now()>=(cooldowns.get(name)||0)}))});});
 app.post("/api/chat",async(req,res)=>{
@@ -90,13 +104,20 @@ app.post("/api/chat",async(req,res)=>{
   for(const model of models){
    try{
     const isAnthropic=name==="anthropic";
+    const useGoogleSearch=name==="gemini"&&wantsGoogleSearch(input);
     const headers=isAnthropic
      ?{"x-api-key":key,"anthropic-version":"2023-06-01","content-type":"application/json"}
      :{...(name==="pollinations"?{}:{"Authorization":"Bearer "+key}),"Content-Type":"application/json",...(name==="openrouter"?{"HTTP-Referer":"https://af4-ai.onrender.com","X-Title":"AF4 AI"}:{})};
-    const payload=isAnthropic
-     ?{model,max_tokens:1600,system:systemInstructions+userContext,messages:input}
-     :{model,messages:[{role:"system",content:systemInstructions+userContext},...input],max_tokens:1600};
-    const response=await fetch(p.url,{method:"POST",headers,body:JSON.stringify(payload),signal:AbortSignal.timeout(45000)});
+    const endpoint=useGoogleSearch
+     ?`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`
+     :p.url;
+    const requestHeaders=useGoogleSearch?{"Content-Type":"application/json"}:headers;
+    const payload=useGoogleSearch
+     ?geminiGroundedPayload(input,userContext,model)
+     :isAnthropic
+      ?{model,max_tokens:1600,system:systemInstructions+userContext,messages:input}
+      :{model,messages:[{role:"system",content:systemInstructions+userContext},...input],max_tokens:1600};
+    const response=await fetch(endpoint,{method:"POST",headers:requestHeaders,body:JSON.stringify(payload),signal:AbortSignal.timeout(45000)});
     const raw=await response.text();
     let data={};try{data=JSON.parse(raw)}catch{}
     if(!response.ok||data?.error){
@@ -118,10 +139,18 @@ app.post("/api/chat",async(req,res)=>{
      continue;
     }
     const choice=data?.choices?.[0];
-    let reply=isAnthropic
-     ?data.content?.filter(x=>x.type==="text").map(x=>x.text).join("\n")
-     :(choice?.message?.content??choice?.text??data?.output_text);
+    const geminiCandidate=useGoogleSearch?data?.candidates?.[0]:null;
+    let reply=useGoogleSearch
+     ?(geminiCandidate?.content?.parts||[]).map(part=>part?.text||"").filter(Boolean).join("\n")
+     :isAnthropic
+      ?data.content?.filter(x=>x.type==="text").map(x=>x.text).join("\n")
+      :(choice?.message?.content??choice?.text??data?.output_text);
     if(Array.isArray(reply))reply=reply.map(part=>typeof part==="string"?part:(part?.text||part?.content||"")).filter(Boolean).join("\n");
+    if(useGoogleSearch&&typeof reply==="string"){
+     const chunks=geminiCandidate?.groundingMetadata?.groundingChunks||[];
+     const sources=[...new Map(chunks.map(x=>x?.web).filter(x=>x?.uri).map(x=>[x.uri,x])).values()].slice(0,5);
+     if(sources.length)reply+="\n\nمنابع گوگل:\n"+sources.map((s,i)=>`[${i+1}] ${s.title||s.uri} — ${s.uri}`).join("\n");
+    }
     if(typeof reply!=="string"||!reply.trim()){
      lastError="مدل پاسخ متنی خالی برگرداند";
      console.warn("Provider/model returned no text; trying fallback:",name,model);
