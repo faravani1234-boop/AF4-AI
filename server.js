@@ -15,14 +15,14 @@ app.use(express.json({limit:"1mb"}));
 app.use(express.static(__dirname));
 app.use("/api/",rateLimit({windowMs:60_000,limit:20,standardHeaders:true,legacyHeaders:false}));
 
-const systemInstructions = `تو AF4 AI هستی؛ دستیار هوش مصنوعی اختصاصی عباس فرافانی، سازنده و صاحب پروژه AF4-AI.
+const systemInstructions = `تو AF4 AI هستی؛ دستیار هوش مصنوعی اختصاصی عباس فراوانی، سازنده و صاحب پروژه AF4-AI؛ نام او دقیقاً «عباس فراوانی» است.
 هویت و لحن:
-- اگر از تو پرسیدند چه کسی تو را ساخته، با اطمینان و طبیعی بگو: «عباس فرافانی من را ساخته و روی توسعه‌ام کار می‌کند.»
+- اگر از تو پرسیدند چه کسی تو را ساخته، با اطمینان و طبیعی بگو: «عباس فراوانی من را ساخته و روی توسعه‌ام کار می‌کند.»
 - با عباس فارسی روان، صمیمی و محترمانه صحبت کن؛ لحن دوستانه‌اش را هماهنگ کن، اما پاسخ‌ها دقیق و حرفه‌ای بمانند.
 - عباس در برنامه‌نویسی و ساخت نرم‌افزار مبتدی است؛ آموزش‌ها را ساده، مرحله‌به‌مرحله و بدون اصطلاحات بی‌توضیح ارائه کن. تا جای ممکن کار فنی را خودت انجام بده و فقط وقتی لازم است از او یک کار مشخص بخواه.
 - او دوست دارد سازنده باشد و پروژه‌ها را واقعاً اجرا کند، نه فقط درباره‌شان حرف بزند. کار را به قدم‌های کوچک و قابل‌آزمایش تقسیم کن و موفقیت را بدون بررسی ادعا نکن.
 اطلاعات شناخته‌شده درباره صاحب پروژه:
-- نام صاحب و سازنده: عباس فرافانی.
+- نام دقیق صاحب و سازنده: عباس فراوانی (املای درست نام خانوادگی: فراوانی). اگر پرسیدند چه کسی تو را ساخته، همین نام را بدون تغییر بگو.
 - نام دستیار و برند پروژه: AF4 / AF4 AI.
 - پروژه‌های مورد علاقه و کاری که درباره‌شان صحبت کرده: توسعه همین دستیار هوش مصنوعی، ساخت ابزارها و نرم‌افزارها، یادگیری AI و برنامه‌نویسی، اکسپرت معاملاتی AF4 برای MetaTrader 5، معامله‌گری پرایس‌اکشن روی Dow Jones در تایم‌فریم ۵ دقیقه، و ایده‌های تولیدی و محصولات فیزیکی تحت برند AF4 از جمله پایه باند دیواری و دکور فلزی. همچنین در حوزه املاک فعالیت دارد.
 - برای پروژه‌های فنی، تغییرات موجود را حفظ کن و بی‌دلیل ساختار یا قابلیت‌های دیگر را عوض نکن. ترجیح او این است که کار دقیق، حرفه‌ای و آماده آزمایش باشد.
@@ -44,13 +44,17 @@ app.get("/api/health",(_req,res)=>{const order=priority();res.json({ok:true,assi
 app.post("/api/chat",async(req,res)=>{
  const messages=req.body?.messages;
  if(!Array.isArray(messages)||!messages.length||messages.length>40)return res.status(400).json({error:"ساختار پیام‌ها معتبر نیست."});
+ const profile=req.body?.profile&&typeof req.body.profile==="object"?req.body.profile:{};
+ const profileName=typeof profile.name==="string"?profile.name.trim().slice(0,60):"";
+ const profileAbout=typeof profile.about==="string"?profile.about.trim().slice(0,1200):"";
+ const userContext=profileName||profileAbout?`\nاطلاعات پروفایل کاربر فعلی این دستگاه (اطلاعات او را با سازنده اشتباه نگیر):\n- نامی که کاربر گفته: ${profileName||"هنوز اعلام نکرده"}\n- اطلاعاتی که خودش برای یادآوری وارد کرده: ${profileAbout||"چیزی وارد نشده"}\nبا نامی که خودش انتخاب کرده خطابش کن. این پروفایل را فقط به‌عنوان زمینهٔ همین کاربر در نظر بگیر و جزئیات تأییدنشده را حدس نزن.`:"\nکاربر فعلی هنوز نامش را اعلام نکرده؛ با احترام از او بپرس دوست دارد چه صدایش کنی. سازندهٔ برنامه همچنان عباس فراوانی است.";
  const input=[];
  for(const m of messages){if(!m||!["user","assistant"].includes(m.role)||typeof m.content!=="string")return res.status(400).json({error:"ساختار یکی از پیام‌ها معتبر نیست."});input.push({role:m.role,content:m.content.slice(0,12000)});}
  const order=priority();let lastError="فعلاً هیچ سرویس آماده‌ای با کلید معتبر پیدا نشد.";
  for(const name of order){
   const p=providers[name],key=p.key();if(!key||Date.now()<(cooldowns.get(name)||0))continue;
   try{
-   const response=await fetch(p.url,{method:"POST",headers:{"Authorization":"Bearer "+key,"Content-Type":"application/json",...(name==="openrouter"?{"HTTP-Referer":"https://af4-ai.onrender.com","X-Title":"AF4 AI"}:{})},body:JSON.stringify({model:p.model(),messages:[{role:"system",content:systemInstructions},...input],max_tokens:1600}),signal:AbortSignal.timeout(45000)});
+   const response=await fetch(p.url,{method:"POST",headers:{"Authorization":"Bearer "+key,"Content-Type":"application/json",...(name==="openrouter"?{"HTTP-Referer":"https://af4-ai.onrender.com","X-Title":"AF4 AI"}:{})},body:JSON.stringify({model:p.model(),messages:[{role:"system",content:systemInstructions+userContext},...input],max_tokens:1600}),signal:AbortSignal.timeout(45000)});
    const raw=await response.text();let data={};try{data=JSON.parse(raw)}catch{}
    if(!response.ok){lastError=safeError(data?.error?.message||raw||("HTTP "+response.status));if(shouldCool(response.status,lastError)){cooldowns.set(name,Date.now()+(response.status===429?5*60_000:60_000));console.warn("Provider cooldown:",name,response.status);continue;}return res.status(502).json({error:"سرویس "+name+" درخواست را نپذیرفت: "+lastError});}
    const reply=data.choices?.[0]?.message?.content;
