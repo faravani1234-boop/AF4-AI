@@ -72,6 +72,30 @@ function wantsGoogleSearch(messages=[]){
  return /\b(latest|current|today|right now|news|recent|search the web|google search|look up|research|sources|citations|this week|this year|price today|weather|who won|what happened)\b/i.test(q)
  || /الان|امروز|جدیدترین|آخرین|اخبار|خبرهای|به.?روز|جست.?وجو|سرچ|گوگل|تحقیق|پژوهش|در وب|وب.?گردی|منابع|لینک منبع|قیمت روز|این هفته|امسال|چه اتفاقی افتاد|بررسی کن|اطلاعات جدید/i.test(q);
 }
+
+function decodeHtml(s=""){return String(s).replace(/&amp;/g,"&").replace(/&quot;/g,'"').replace(/&#39;|&apos;/g,"'").replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&#x([0-9a-f]+);/gi,(_,h)=>String.fromCodePoint(parseInt(h,16))).replace(/&#(\d+);/g,(_,n)=>String.fromCodePoint(Number(n)));}
+async function searchWebWithoutKey(messages=[]){
+ const query=messages.filter(m=>m?.role==="user").map(m=>String(m.content||"")).slice(-2).join(" ").trim().slice(0,350);
+ if(!query)return "";
+ try{
+  const response=await fetch("https://html.duckduckgo.com/html/?q="+encodeURIComponent(query),{headers:{"User-Agent":"Mozilla/5.0 (compatible; AF4AI/1.0)","Accept":"text/html"},signal:AbortSignal.timeout(5000)});
+  if(!response.ok)return "";
+  const html=await response.text();
+  const results=[];
+  const re=/<a[^>]*class="result__a"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?<(?:a|div)[^>]*class="result__snippet"[^>]*>([\s\S]*?)<\/(?:a|div)>/gi;
+  let m;
+  while((m=re.exec(html))&&results.length<5){
+   let url=decodeHtml(m[1]).replace(/^\/\/duckduckgo\.com\/l\/\?uddg=/,"");
+   try{if(url.startsWith("http")){}else if(url.includes("uddg="))url=new URL("https://duckduckgo.com"+m[1]).searchParams.get("uddg")||url;}catch{}
+   const title=decodeHtml(m[2].replace(/<[^>]*>/g,"")).trim();
+   const snippet=decodeHtml(m[3].replace(/<[^>]*>/g,"")).trim();
+   if(title&&url.startsWith("http"))results.push({title,url,snippet});
+  }
+  if(!results.length)return "";
+  return "\n\nنتایج جست‌وجوی زنده وب (DuckDuckGo؛ بدون کلید API). فقط از این نتایج برای اطلاعات به‌روز استفاده کن، ادعاها را با احتیاط بیان کن و منابع مرتبط را به‌صورت لینک بیاور:\n"+results.map((x,i)=>`[${i+1}] ${x.title}\n${x.snippet}\nURL: ${x.url}`).join("\n\n");
+ }catch(e){console.warn("Keyless web search unavailable:",e?.name||"Error");return "";}
+}
+
 function geminiGroundedPayload(messages, userContext, model){
  return {
   contents:messages.map(m=>({role:m.role==="assistant"?"model":"user",parts:[{text:m.content}]})),
@@ -92,7 +116,7 @@ app.post("/api/chat",async(req,res)=>{
  const userContext=profileName||profileAbout?`\nاطلاعات پروفایل کاربر فعلی این دستگاه (اطلاعات او را با سازنده اشتباه نگیر):\n- نامی که کاربر گفته: ${profileName||"هنوز اعلام نکرده"}\n- اطلاعاتی که خودش برای یادآوری وارد کرده: ${profileAbout||"چیزی وارد نشده"}\nبا نامی که خودش انتخاب کرده خطابش کن. این پروفایل را فقط به‌عنوان زمینهٔ همین کاربر در نظر بگیر و جزئیات تأییدنشده را حدس نزن.`:"\nکاربر فعلی هنوز نامش را اعلام نکرده؛ محترمانه و بدون حدس زدن نام او پاسخ بده. نام سازنده را فقط در پاسخ به سؤال صریح دربارهٔ سازنده مطرح کن.";
  const input=[];
  for(const m of messages){if(!m||!["user","assistant"].includes(m.role)||typeof m.content!=="string")return res.status(400).json({error:"ساختار یکی از پیام‌ها معتبر نیست."});input.push({role:m.role,content:m.content.slice(0,12000)});}
- const requestDeadline=Date.now()+30000;\n const order=priority(input);let lastError="فعلاً هیچ سرویس آماده‌ای با کلید معتبر پیدا نشد.";let openRouterDailyLimit=false;
+ const requestDeadline=Date.now()+30000;\n const webContext=wantsGoogleSearch(input)?await searchWebWithoutKey(input):"";\n const contextualInstructions=systemInstructions+userContext+(webContext||"");\n const order=priority(input);let lastError="فعلاً هیچ سرویس آماده‌ای با کلید معتبر پیدا نشد.";let openRouterDailyLimit=false;
  for(const name of order){
   const p=providers[name];
   const key=p.key();
@@ -113,10 +137,10 @@ app.post("/api/chat",async(req,res)=>{
      :p.url;
     const requestHeaders=useGoogleSearch?{"Content-Type":"application/json"}:headers;
     const payload=useGoogleSearch
-     ?geminiGroundedPayload(input,userContext,model)
+     ?geminiGroundedPayload(input,contextualInstructions,model)
      :isAnthropic
-      ?{model,max_tokens:1600,system:systemInstructions+userContext,messages:input}
-      :{model,messages:[{role:"system",content:systemInstructions+userContext},...input],max_tokens:1600};
+      ?{model,max_tokens:1600,system:contextualInstructions,messages:input}
+      :{model,messages:[{role:"system",content:contextualInstructions},...input],max_tokens:1600};
     const response=await fetch(endpoint,{method:"POST",headers:requestHeaders,body:JSON.stringify(payload),signal:AbortSignal.timeout(Math.min(12000,Math.max(1000,requestDeadline-Date.now())))});
     const raw=await response.text();
     let data={};try{data=JSON.parse(raw)}catch{}
