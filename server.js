@@ -48,6 +48,8 @@ function hasKeys(provider, legacyEnv) {
  return Boolean((process.env[provider.toUpperCase()+"_API_KEYS"] || "").split(",").some(x=>x.trim()) || process.env[legacyEnv]?.trim());
 }
 const providers = {
+ // Kilo Gateway offers anonymous access to free models; no provider key required.
+ kilo:{key:()=>getKey("kilo","KILO_API_KEY"),model:()=>process.env.KILO_MODEL||"kilo-auto/free",url:"https://ai-gateway.kilo.ai/api/v1/chat/completions",anonymous:true},
  gemini:{key:()=>getKey("gemini","GEMINI_API_KEY"), model:()=>process.env.GEMINI_MODEL||process.env.AI_MODEL||"gemini-3.8-flash", url:"https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"},
  groq:{key:()=>getKey("groq","GROQ_API_KEY"), model:()=>process.env.GROQ_MODEL||"llama-3.3-70b-versatile", url:"https://api.groq.com/openai/v1/chat/completions"},
  openai:{key:()=>getKey("openai","OPENAI_API_KEY"), model:()=>process.env.OPENAI_MODEL||"gpt-4.1-mini", url:"https://api.openai.com/v1/chat/completions"},
@@ -64,7 +66,7 @@ function priority(messages=[]){
  const fast=/\b(quick|brief|short|translate|summari[sz]e|simple)\b/i.test(text)||/ترجمه|خلاصه|کوتاه|ساده/i.test(text);
  const taskOrder=code?["anthropic","openai","openrouter","gemini","groq"]:deep?["openai","anthropic","gemini","openrouter","groq"]:fast?["groq","gemini","openrouter","openai","anthropic"]:["gemini","openai","groq","anthropic","openrouter"];
  const configured=(process.env.AI_PROVIDER_PRIORITY||process.env.AI_PROVIDER||"").split(",").map(x=>x.trim().toLowerCase()).filter(x=>providers[x]);
- return [...new Set([...configured,...taskOrder,...Object.keys(providers)])].filter(x=>providers[x]);
+ return [...new Set(["kilo",...configured,...taskOrder,...Object.keys(providers)])].filter(x=>providers[x]);
 }
 function shouldCool(status,body){const s=String(body||"").toLowerCase();return status===429||status>=500||/quota|rate.?limit|resource_exhausted|overloaded|timeout|temporarily unavailable|billing|credit balance/.test(s);}
 function wantsGoogleSearch(messages=[]){
@@ -106,7 +108,7 @@ function geminiGroundedPayload(messages, userContext, model){
 }
 
 function safeError(value){let s=String(value||"خطای ناشناخته");for(const name of Object.keys(providers)){const env=name.toUpperCase()+"_API_KEYS";const all=[...(process.env[env]||"").split(",").map(x=>x.trim()).filter(Boolean),process.env[name.toUpperCase()+"_API_KEY"]].filter(Boolean);for(const k of all)s=s.split(k).join("[کلید محرمانه پنهان شد]");}return s.replace(/sk-or-v1-[a-f0-9]{20,}/gi,"[کلید محرمانه پنهان شد]").slice(0,220);}
-app.get("/api/health",(_req,res)=>{const order=priority();res.json({ok:true,assistant:"AF4 AI",owner:"Abbas Faravani",providers:order.map(name=>({name,configured:name==="pollinations"||hasKeys(name, name.toUpperCase()+"_API_KEY"),available:Date.now()>=(cooldowns.get(name)||0)}))});});
+app.get("/api/health",(_req,res)=>{const order=priority();res.json({ok:true,assistant:"AF4 AI",owner:"Abbas Faravani",providers:order.map(name=>({name,configured:name==="pollinations"||name==="kilo"||hasKeys(name, name.toUpperCase()+"_API_KEY"),available:Date.now()>=(cooldowns.get(name)||0)}))});});
 app.post("/api/chat",async(req,res)=>{
  const messages=req.body?.messages;
  if(!Array.isArray(messages)||!messages.length||messages.length>40)return res.status(400).json({error:"ساختار پیام‌ها معتبر نیست."});
@@ -128,7 +130,7 @@ app.post("/api/chat",async(req,res)=>{
   if(Date.now()>=requestDeadline)break;
   const p=providers[name];
   const key=p.key();
-  if(!key||Date.now()<(cooldowns.get(name)||0))continue;
+  if((!key&&!p.anonymous)||Date.now()<(cooldowns.get(name)||0))continue;
   const models=name==="openrouter"
    ? [...new Set([p.model(),"openrouter/free","nvidia/nemotron-3.5-lightning:free","nvidia/nemotron-3-ultra:free","nvidia/nemotron-3.5-super-vl:free","poolside/laguna-s-2.1:free","dots-studio/dots-3-note-preview:free"])]
    : [p.model()];
@@ -140,7 +142,7 @@ app.post("/api/chat",async(req,res)=>{
     const useGoogleSearch=name==="gemini"&&wantsGoogleSearch(input);
     const headers=isAnthropic
      ?{"x-api-key":key,"anthropic-version":"2023-06-01","content-type":"application/json"}
-     :{"Authorization":"Bearer "+key,"Content-Type":"application/json",...(name==="openrouter"?{"HTTP-Referer":"https://af4-ai.onrender.com","X-Title":"AF4 AI"}:{})};
+     :{"Content-Type":"application/json",...(key?{"Authorization":"Bearer "+key}:{}),...(name==="openrouter"?{"HTTP-Referer":"https://af4-ai.onrender.com","X-Title":"AF4 AI"}:{})};
     const endpoint=useGoogleSearch
      ?`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`
      :p.url;
