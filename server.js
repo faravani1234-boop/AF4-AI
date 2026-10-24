@@ -99,8 +99,8 @@ async function searchWebWithoutKey(messages=[]){
 function geminiGroundedPayload(messages, userContext, model){
  return {
   contents:messages.map(m=>({role:m.role==="assistant"?"model":"user",parts:[{text:m.content}]})),
-  systemInstruction:{parts:[{text:systemInstructions+userContext}]},
-  tools:[{google_search:{}}],
+  systemInstruction:{parts:[{text:userContext}]},
+  tools:[{google_search_retrieval:{}}],
   generationConfig:{maxOutputTokens:1600,temperature:0.7}
  };
 }
@@ -120,9 +120,9 @@ app.post("/api/chat",async(req,res)=>{
  for(const m of messages){if(!m||!["user","assistant"].includes(m.role)||typeof m.content!=="string")return res.status(400).json({error:"ساختار یکی از پیام‌ها معتبر نیست."});input.push({role:m.role,content:m.content.slice(0,12000)});}
  const requestDeadline=Date.now()+25000;
  const needsWeb=wantsGoogleSearch(input);
- const webContext=needsWeb?await searchWebWithoutKey(input):"";
- const webInstructions=needsWeb&&!webContext?"\nکاربر درخواست اطلاعات به‌روز یا پژوهش وب کرده است، اما جست‌وجوی وب در این درخواست نتیجه نداد؛ صادقانه بگو نتوانستی وب را بررسی کنی و اطلاعات تازه را حدس نزن.":"";
- const contextualInstructions=systemInstructions+"\\nتفضيل لحن کاربر: "+toneInstructions+userContext+(webContext||"")+webInstructions;
+ let webContext=needsWeb&&!hasKeys("gemini","GEMINI_API_KEY")?await searchWebWithoutKey(input):"";
+ const webInstructions=needsWeb&&!webContext&&!hasKeys("gemini","GEMINI_API_KEY")?"\nکاربر درخواست اطلاعات به‌روز یا پژوهش وب کرده است، اما جست‌وجوی وب در این درخواست نتیجه نداد؛ صادقانه بگو نتوانستی وب را بررسی کنی و اطلاعات تازه را حدس نزن.":"";
+ let contextualInstructions=systemInstructions+"\\nتفضيل لحن کاربر: "+toneInstructions+userContext+(webContext||"")+webInstructions;
  const order=priority(input);let lastError="فعلاً هیچ سرویس آماده‌ای با کلید معتبر پیدا نشد.";let openRouterDailyLimit=false;
  for(const name of order){
   if(Date.now()>=requestDeadline)break;
@@ -168,6 +168,12 @@ app.post("/api/chat",async(req,res)=>{
       console.warn("Provider/model temporarily unavailable; trying fallback:",name,model,status);
      }else{
       console.warn("Provider/model rejected request; trying fallback:",name,model,status);
+     }
+     // If native Google Search grounding is unavailable, fall back to a free keyless web search.
+     if(useGoogleSearch&&needsWeb&&!webContext){
+      webContext=await searchWebWithoutKey(input);
+      if(webContext)contextualInstructions+="\\n"+webContext;
+      else contextualInstructions+="\\nجست‌وجوی زنده در دسترس نبود؛ اطلاعات تازه را حدس نزن و محدودیت را شفاف بگو.";
      }
      continue;
     }
