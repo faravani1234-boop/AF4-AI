@@ -2,6 +2,7 @@ import "dotenv/config";
 import express from "express";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
+import instagramAgent from "./instagram-agent.js";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -11,9 +12,11 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 app.set("trust proxy", 1);
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use((req,res,next)=>{res.setHeader("Access-Control-Allow-Origin","*");res.setHeader("Access-Control-Allow-Methods","GET, POST, OPTIONS");res.setHeader("Access-Control-Allow-Headers","Content-Type, Authorization");if(req.method==="OPTIONS")return res.sendStatus(204);next();});
-app.use(express.json({limit:"1mb"}));
+app.use(express.json({limit:"1mb", verify:(req,_res,buf)=>{req.rawBody=Buffer.from(buf);}}));
 app.use(express.static(__dirname));
 app.use("/api/",rateLimit({windowMs:60_000,limit:20,standardHeaders:true,legacyHeaders:false}));
+app.use("/api/instagram", rateLimit({windowMs:60_000,limit:60,standardHeaders:true,legacyHeaders:false}));
+app.use("/api/instagram", instagramAgent);
 
 const systemInstructions = `تو AF4 AI هستی؛ دستیار هوش مصنوعی با برند AF4.
 هویت و لحن:
