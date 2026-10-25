@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://af4-official.onrender.com/sitemap.xml
