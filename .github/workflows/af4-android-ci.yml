@@ -1,0 +1,49 @@
+name: AF4 AI Android Build
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - '**'
+    paths:
+      - '.github/workflows/af4-android-ci.yml'
+      - 'index.html'
+      - 'app.js'
+      - 'styles.css'
+      - 'manifest.webmanifest'
+      - 'icon.svg'
+      - 'sw.js'
+      - 'capacitor.config.json'
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Install Capacitor and prepare assets
+        run: |
+          npm install
+          npm install --no-save @capacitor/core@^7 @capacitor/cli@^7 @capacitor/android@^7 @capacitor/assets sharp
+          mkdir -p www resources
+          node --input-type=module -e "import sharp from 'sharp'; await sharp('icon.svg').resize(1024,1024).png().toFile('resources/icon.png'); await sharp({create:{width:2732,height:2732,channels:4,background:'#11121a'}}).png().toFile('resources/splash.png')"
+          cp index.html app.js styles.css manifest.webmanifest icon.svg sw.js www/
+          rm -rf android
+          npx cap add android
+          npx cap sync android
+          npx capacitor-assets generate --android
+      - name: Build debug APK
+        run: cd android && chmod +x gradlew && ./gradlew --no-daemon assembleDebug
+      - name: Name APK
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk AF4-AI.apk
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: AF4-AI-Android-APK
+          path: AF4-AI.apk
+          if-no-files-found: error
+          retention-days: 30
