@@ -66,7 +66,7 @@ function getInstantReply(raw){
 
 /* AF4 AI Offline Language Layer v2: local-first colloquial Persian, varied replies, fuzzy matching, and compact offline facts. */
 const AF4_OFFLINE_LANGUAGE = (() => {
- const tidy = s => String(s||"").toLowerCase().replace(/[يى]/g,"ی").replace(/ك/g,"ک").replace(/ۀ/g,"ه").replace(/[أإٱ]/g,"ا").replace(/ؤ/g,"و").replace(/ئ/g,"ی").replace(/[\u064B-\u065F\u0670]/g,"").replace(/[\u200c\u200d\u200e\u200f]/g," ").replace(/[ـ]+/g,"").replace(/[!！?؟.,،؛:…"'~*_+=()[\]{}<>/\\|@#$%^&-]+/g," ").replace(/\s+/g," ").trim();
+ const tidy = s => String(s||"").toLowerCase().replace(/[يى]/g,"ی").replace(/ك/g,"ک").replace(/ۀ/g,"ه").replace(/[أإٱ]/g,"ا").replace(/ؤ/g,"و").replace(/ئ/g,"ی").replace(/[\u064B-\u065F\u0670]/g,"").replace(/[\u200c\u200d\u200e\u200f]/g," ").replace(/[ـ]+/g,"").replace(/[!！?؟.,،؛:…"'~*_+=()[\]{}<>\\/\\|@#$%^&-]+/g," ").replace(/\s+/g," ").trim();
  const soften = s => tidy(s).replace(/\b(لطفا|لطفاً|یه|یک|من|تو|شما|رو|را|به|از|با|واسه|برای|اصلا|اصلاً|خب|آخه|یعنی|دیگه|هم|همین|الان|ببین|بگو|داداش|رفیق|مشتی|سلطان|عزیزم|عزیز|جان|جون|سی سی|سیسی)\b/g," ").replace(/\s+/g," ").trim();
  const pick = a => a[Math.floor(Math.random()*a.length)];
  const who = () => (typeof profile!=="undefined" && profile.name ? profile.name.trim() : "دوست من");
