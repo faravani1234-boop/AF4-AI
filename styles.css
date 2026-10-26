@@ -72,3 +72,91 @@ body{background:var(--bg);color:var(--text)}
 
 /* AF4 keeps a single consistent dark theme; no light-mode toggle. */
 .theme-button{display:none!important}
+
+
+/* AF4 Studio — refined, calmer chat-first layout */
+:root{
+  --bg:#0b0b10;--surface:#111117;--sidebar:#0e0e14;--surface2:#17171f;
+  --line:#24242e;--line2:#343442;--text:#f4f2fa;--muted:#a5a2b4;
+  --muted2:#777487;--accent:#a48aff;--accent2:#8664f5;--soft:#211a34;
+  --softline:#423260;--user:#211a32;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);-webkit-font-smoothing:antialiased}
+.app-shell{min-height:100dvh}
+.sidebar{width:258px;flex-basis:258px;padding:20px 14px 13px;gap:17px;border-left-color:#20202a}
+.topbar{height:66px;padding:0 25px;border-bottom-color:#20202a;background:rgba(12,12,18,.92)}
+.breadcrumb{font-size:12px}.breadcrumb>span:first-child{display:none}.crumb-divider{display:none}
+.connection-pill{font-size:10px;padding:7px 10px;border-color:#292932;background:#14141b;white-space:nowrap}
+.connection-pill[data-state="checking"] .status-dot{background:#d3ad60}
+.connection-pill[data-state="offline"] .status-dot{background:#e36b7b;box-shadow:0 0 0 3px #e36b7b18}
+.connection-pill[data-state="online"] .status-dot{background:#54d6a1}
+.chat-area{max-width:900px;padding:28px 30px 14px;gap:18px}
+.welcome{max-width:720px;width:100%;margin:auto;padding:30px 0 25px;align-self:center}
+.welcome-brand{margin-bottom:17px}
+.welcome-logo{width:54px;height:54px;border-radius:18px;transform:none}
+.welcome h1{font-size:clamp(29px,3.5vw,39px);line-height:1.55;letter-spacing:-.65px;margin:14px 0 9px}
+.welcome-copy{max-width:510px;font-size:12px;line-height:2.05;color:#aaa7ba}
+.suggestions{gap:10px;margin:27px auto 18px;max-width:670px}
+.suggestion{min-height:76px;border-radius:16px;border-color:#262530;background:linear-gradient(145deg,#15151d,#111117);padding:14px 15px;gap:12px}
+.suggestion strong{font-size:12px}.suggestion small{font-size:10px;line-height:1.7}
+.suggestion-icon{width:34px;height:34px;border-radius:11px}
+.suggestion-arrow{font-size:14px;color:#8d83a9}
+.welcome-foot{font-size:10px;color:#777487}
+.messages{gap:23px;padding:8px 0 24px}
+.message{max-width:min(100%,760px);font-size:14px;line-height:2}
+.message-label{font-size:10px;color:#aaa5bf;margin-bottom:7px}
+.message.user .message-body{background:#211b30;border:1px solid #352b4a;border-radius:18px 18px 5px 18px;padding:12px 16px}
+.message.assistant .message-body{background:transparent;border:0;padding:0;color:#eeecf5}
+.composer-wrap{width:min(100% - 40px,800px);margin:0 auto;padding:12px 0 17px;background:linear-gradient(180deg,transparent,#0b0b10 18%)}
+.composer{min-height:62px;border:1px solid #34313f;border-radius:21px;padding:9px 10px;background:#14141c;box-shadow:0 12px 38px #0003;gap:8px}
+.composer:focus-within{border-color:#6e579c;box-shadow:0 0 0 3px #9a78ff12,0 12px 38px #0003}
+.composer textarea{font-size:13px;line-height:1.9;padding:8px 5px;max-height:190px}
+.composer-tool{width:34px;height:34px;border-radius:11px;color:#aaa5bb;background:#1b1a24;border-color:#2b2935}
+.composer-end{gap:9px}
+.composer-hint{font-size:9px;color:#777487}
+.send-button{width:38px;height:38px;border-radius:13px;display:grid;place-items:center;color:#fff;font-size:20px}
+.disclaimer{font-size:9px;color:#777487;margin-top:10px;line-height:1.8}
+.settings-panel{width:320px;max-width:calc(100vw - 24px);padding:21px 18px;background:#12121a;border-right:1px solid #292633;box-shadow:-15px 0 50px #0002}
+.settings-heading h2{font-size:18px;letter-spacing:-.2px}
+.settings-section-title{font-size:11px;color:#c4bdd7}
+.settings-panel label{font-size:11px}
+.settings-panel input,.settings-panel select{border-radius:12px;min-height:42px}
+.settings-note{font-size:10px;line-height:1.9}
+.settings-done{border-radius:13px;min-height:44px}
+.profile-chip-text small{color:#858195}
+.icon-button{border-radius:12px}
+.new-chat{border-radius:13px;min-height:46px}
+.nav-item{border-radius:12px;min-height:40px}
+.sidebar-status{border-radius:14px;background:#12121a;border-color:#282732}
+@media(max-width:800px){
+  .topbar{height:60px;padding:0 14px;gap:8px}
+  .topbar-actions{gap:6px}.connection-pill{padding:6px 8px}
+  .profile-chip-text,.chevron{display:none}
+  .chat-area{padding:15px 17px 8px;max-width:100%}
+  .welcome{padding:18px 0 15px}
+  .welcome-brand{height:56px;margin-bottom:10px}
+  .welcome h1{font-size:28px;margin:11px 0 8px}
+  .welcome-copy{font-size:11px;line-height:1.95;max-width:440px}
+  .suggestions{grid-template-columns:1fr;gap:8px;margin:20px auto 13px}
+  .suggestion{min-height:62px;padding:10px 12px;border-radius:14px}
+  .suggestion-icon{width:31px;height:31px}
+  .welcome-foot{font-size:9px}
+  .composer-wrap{width:calc(100% - 22px);padding:8px 0 max(10px,env(safe-area-inset-bottom))}
+  .composer{border-radius:18px;min-height:56px;padding:7px}
+  .composer textarea{font-size:13px;min-width:0}
+  .composer-hint{display:none}
+  .message{font-size:13px}
+}
+@media(max-width:390px){
+  .topbar-actions{gap:4px}
+  .topbar .icon-button{width:33px;height:33px;flex-basis:33px}
+  .connection-pill{font-size:9px;padding:5px 7px}
+  .welcome h1{font-size:25px}
+  .welcome-copy{font-size:10px}
+  .composer-tool{width:30px;height:30px;flex:0 0 30px}
+  .send-button{width:34px;height:34px}
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}
+}
