@@ -1,0 +1,33 @@
+name: AF4 AI Windows Build
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - '**'
+    paths:
+      - 'electron/**'
+      - '.github/workflows/af4-windows-ci.yml'
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm install
+      - name: Configure Electron
+        run: |
+          npm install --save-dev electron electron-builder
+          npm pkg set main=electron/main.cjs
+          npm pkg set "scripts.desktop:win=electron-builder --win nsis"
+      - name: Build installer
+        run: npm run desktop:win
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: AF4-AI-Windows-Installer
+          path: dist/*.exe
+          if-no-files-found: error
+          retention-days: 30
