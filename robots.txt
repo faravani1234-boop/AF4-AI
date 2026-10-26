@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://faravani1234-boop.github.io/AF4-AI/sitemap.xml
