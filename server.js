@@ -53,7 +53,7 @@ function hasKeys(provider, legacyEnv) {
 const providers = {
  // Kilo Gateway offers anonymous access to free models; no provider key required.
  kilo:{key:()=>getKey("kilo","KILO_API_KEY"),model:()=>process.env.KILO_MODEL||"kilo-auto/free",url:"https://ai-gateway.kilo.ai/api/v1/chat/completions",anonymous:true},
- gemini:{key:()=>getKey("gemini","GEMINI_API_KEY"), model:()=>process.env.GEMINI_MODEL||process.env.AI_MODEL||"gemini-3.8-flash", url:"https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"},
+ gemini:{key:()=>getKey("gemini","GEMINI_API_KEY"), model:()=>process.env.GEMINI_MODEL||process.env.AI_MODEL||"gemini-2.5-flash", url:"https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"},
  groq:{key:()=>getKey("groq","GROQ_API_KEY"), model:()=>process.env.GROQ_MODEL||"llama-3.3-70b-versatile", url:"https://api.groq.com/openai/v1/chat/completions"},
  openai:{key:()=>getKey("openai","OPENAI_API_KEY"), model:()=>process.env.OPENAI_MODEL||"gpt-4.1-mini", url:"https://api.openai.com/v1/chat/completions"},
  anthropic:{key:()=>getKey("anthropic","ANTHROPIC_API_KEY"), model:()=>process.env.ANTHROPIC_MODEL||"claude-sonnet-4-5", url:"https://api.anthropic.com/v1/messages"},
