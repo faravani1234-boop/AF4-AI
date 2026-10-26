@@ -19,7 +19,7 @@ function createWindow() {
     if (url.startsWith("https://")) shell.openExternal(url);
     return { action: "deny" };
   });
-  win.loadURL("https://af4-ai.onrender.com");
+  win.loadFile(require("node:path").join(__dirname, "..", "index.html"));
 }
 
 app.whenReady().then(createWindow);
