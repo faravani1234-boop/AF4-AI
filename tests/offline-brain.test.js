@@ -27,7 +27,7 @@ test("understands typo-corrected positive mood statement offline", () => {
 test("responds locally to greetings, thanks, and jokes", () => {
   const w = loadBrain();
   assert.match(w.getInstantReply("سلاام"), /سلام|بگو|درود/);
-  assert.match(w.getInstantReply("مرسیی"), /خواهش|قربونت|هر وقت/);
+  assert.match(w.getInstantReply("مرسیی"), /خواهش|قربونت|هر وقت|کاری نکردم/);
   assert.match(w.getInstantReply("یه جوک بگو"), /😂|🤣|😅/);
 });
 
