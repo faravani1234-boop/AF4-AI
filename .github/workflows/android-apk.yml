@@ -49,9 +49,10 @@ jobs:
           cp index.html app.js offline-brain.js styles.css manifest.webmanifest icon.svg sw.js www/
           rm -rf android
           npx cap add android
-          mkdir -p android/app/src/main/java/com/af4/ai
-          # The exact SHA-verified Qwen3 model downloads on first use, not into the APK.
-          # This preserves the model file and quantization while keeping the installer small.
+          mkdir -p android/app/src/main/assets/llm android/app/src/main/java/com/af4/ai
+          # Keep model license attribution, but download the exact SHA-verified model on first use.
+          # This preserves model file and quantization while keeping the installer small.
+          curl --fail --location --retry 3 --output android/app/src/main/assets/llm/QWEN3-LICENSE.txt https://huggingface.co/Qwen/Qwen3-1.7B/resolve/main/LICENSE
           cp native-android/LocalLLMPlugin.kt android/app/src/main/java/com/af4/ai/LocalLLMPlugin.kt
           cp native-android/MainActivity.java android/app/src/main/java/com/af4/ai/MainActivity.java
           python3 - <<'PY'
