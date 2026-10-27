@@ -80,8 +80,17 @@
         <div class="composer">
           <button type="button" class="composer-tool" id="composerPlus" aria-label="راهنما" title="راهنما">＋</button>
           <button type="button" class="composer-tool voice-button" id="voiceButton" aria-label="ورودی صوتی" title="برای صحبت کردن بزن">🎙</button>
+          <button type="button" class="composer-tool sticker-button" id="stickerButton" aria-label="استیکرها" title="استیکرهای AF4">☺</button>
           <textarea id="messageInput" rows="1" placeholder="هر چیزی توی ذهنته از من بپرس..." aria-label="پیام شما"></textarea>
           <div class="composer-end"><span class="composer-hint">↵ ارسال</span><button class="send-button" type="submit" aria-label="ارسال پیام" title="ارسال پیام">↑</button></div>
+        </div>
+        <div class="sticker-tray" id="stickerTray" hidden aria-label="استیکرهای AF4">
+          <button type="button" class="sticker-choice" data-sticker="stickers/hello.svg" data-alt="سلام داداش"><img src="stickers/hello.svg" alt="سلام داداش"><span>سلام</span></button>
+          <button type="button" class="sticker-choice" data-sticker="stickers/laugh.svg" data-alt="از خنده مردم"><img src="stickers/laugh.svg" alt="از خنده مردم"><span>خنده</span></button>
+          <button type="button" class="sticker-choice" data-sticker="stickers/heart.svg" data-alt="قربونت"><img src="stickers/heart.svg" alt="قربونت"><span>قربونت</span></button>
+          <button type="button" class="sticker-choice" data-sticker="stickers/hype.svg" data-alt="بترکون!"><img src="stickers/hype.svg" alt="بترکون"><span>بترکون</span></button>
+          <button type="button" class="sticker-choice" data-sticker="stickers/thanks.svg" data-alt="دمت گرم"><img src="stickers/thanks.svg" alt="دمت گرم"><span>دمت گرم</span></button>
+          <button type="button" class="sticker-choice" data-sticker="stickers/comfort.svg" data-alt="من کنارتم"><img src="stickers/comfort.svg" alt="من کنارتم"><span>کنارتم</span></button>
         </div>
         <p class="disclaimer">AF4 AI ممکن است اشتباه کند؛ برای تصمیم‌های مهم، پاسخ‌ها را بررسی کن.</p>
       </form>
@@ -99,6 +108,12 @@
       <p class="settings-note" id="localModelStatus">وضعیت مدل آفلاین در حال بررسی است…</p>
       <button class="settings-done" id="prepareLocalModel" type="button">آماده‌سازی مغز آفلاین</button>
       <p class="settings-note">آماده‌سازی اولیه ممکن است چند دقیقه طول بکشد و حدود ۲ گیگابایت فضای آزاد برای نصب و آماده‌سازی نیاز دارد. پس از آماده‌شدن، گفت‌وگوهای متنی بدون اینترنت هم قابل انجام‌اند.</p>
+      <div class="settings-divider"></div>
+      <div class="settings-section-title">حافظهٔ محلی قابل‌کنترل</div>
+      <p class="settings-note">این یادداشت‌ها فقط روی همین دستگاه ذخیره می‌شوند و به سرور ارسال نمی‌شوند. برای ذخیرهٔ نکته‌ای در چت بنویس «یادت باشه: ...»؛ هر زمان هم می‌توانی آن را ویرایش یا پاک کنی.</p>
+      <textarea id="localMemoryNotes" rows="4" maxlength="2000" placeholder="نکته‌هایی که می‌خواهی AF4 به خاطر بسپارد…"></textarea>
+      <div class="memory-actions"><button class="settings-done" id="saveLocalMemory" type="button">ذخیرهٔ حافظه</button><button class="settings-done memory-clear" id="clearLocalMemory" type="button">پاک کردن</button></div>
+      <p class="settings-note" id="localMemoryStatus" aria-live="polite">حافظه روی همین دستگاه می‌ماند.</p>
       <div class="settings-divider"></div>
       <div class="settings-section-title">شخصی‌سازی</div>
       <label for="assistantName" class="locked-brand-label">هویت دستیار</label><input id="assistantName" value="AF4 AI" maxlength="32" readonly aria-readonly="true">
