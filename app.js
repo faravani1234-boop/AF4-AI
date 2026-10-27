@@ -229,7 +229,7 @@ async function refreshLocalModelStatus(){
   const state=await bridge.status();
   if(state.ready){status.textContent="مغز آفلاین آماده است؛ می‌توانی بدون اینترنت هم گفت‌وگو کنی.";button.textContent="مدل آفلاین آماده است";button.disabled=false;}
   else if(state.available){status.textContent="فایل مدل روی دستگاه هست؛ برای بارگذاری و شروع چت آفلاین آماده‌اش کن.";button.textContent="بارگذاری مغز آفلاین";button.disabled=false;}
-  else{status.textContent="مدل همراه برنامه است؛ برای آماده‌سازی اولیه و بررسی سلامت فایل، دکمه را بزن.";button.textContent="آماده‌سازی مغز آفلاین";button.disabled=false;}
+  else{status.textContent="برای حفظ همان کیفیت مدل، بار اول باید فایل حدود ۹۷۷ مگابایتی را با اینترنت دانلود کنی؛ بعد از آن می‌توانی کاملاً آفلاین چت کنی.";button.textContent="دانلود و آماده‌سازی مغز آفلاین";button.disabled=false;}
  }catch{status.textContent="وضعیت مدل آفلاین قابل بررسی نیست؛ می‌توانی آماده‌سازی را امتحان کنی.";button.disabled=false;}
 }
 async function prepareLocalModel(){
@@ -244,7 +244,7 @@ async function prepareLocalModel(){
   if(typeof bridge.addListener==="function"){
    listener=await bridge.addListener("modelProgress",event=>{
     const percent=Number(event?.percent);
-    if(Number.isFinite(percent)&&percent>=0)status.textContent="در حال کپی و بررسی مدل آفلاین: "+percent+"٪";
+    if(Number.isFinite(percent)&&percent>=0)status.textContent="در حال دانلود و بررسی مدل آفلاین: "+percent+"٪";
    });
   }
   await bridge.prepare();

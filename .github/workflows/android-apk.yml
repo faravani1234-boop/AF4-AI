@@ -28,11 +28,6 @@ jobs:
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
-      - name: Cache verified on-device model
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/af4-ai-model
-          key: af4-qwen3-1.7b-87603f0
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -54,20 +49,9 @@ jobs:
           cp index.html app.js offline-brain.js styles.css manifest.webmanifest icon.svg sw.js www/
           rm -rf android
           npx cap add android
-          mkdir -p android/app/src/main/assets/llm android/app/src/main/java/com/af4/ai "$HOME/.cache/af4-ai-model"
-          # Model artifact is pinned to revision 87603f0 and verified with its published SHA-256.
-          MODEL_NAME="Qwen3-1.7B_dynamic_wi4b32_afp32.litertlm"
-          MODEL_SHA="2a72330b504a6596d53a2c00923c57173b10f1b83e6a541213ffec08d1fc5de8"
-          MODEL_CACHE="$HOME/.cache/af4-ai-model/$MODEL_NAME"
-          if [ ! -f "$MODEL_CACHE" ] || ! echo "$MODEL_SHA  $MODEL_CACHE" | sha256sum --check --status; then
-            echo "Downloading the Qwen3 1.7B offline model (~977 MB)..."
-            curl --fail --location --retry 3 --retry-delay 3 --connect-timeout 30 --output "$MODEL_CACHE" "https://huggingface.co/litert-community/Qwen3-1.7B/resolve/87603f0/$MODEL_NAME"
-            echo "$MODEL_SHA  $MODEL_CACHE" | sha256sum --check
-          else
-            echo "Using the cached, verified Qwen3 model."
-          fi
-          cp "$MODEL_CACHE" "android/app/src/main/assets/llm/$MODEL_NAME"
-          echo "$MODEL_SHA  android/app/src/main/assets/llm/$MODEL_NAME" | sha256sum --check
+          mkdir -p android/app/src/main/assets/llm android/app/src/main/java/com/af4/ai
+          # Keep model license attribution, but download the exact SHA-verified model on first use.
+          # This preserves model file and quantization while keeping the installer small.
           curl --fail --location --retry 3 --output android/app/src/main/assets/llm/QWEN3-LICENSE.txt https://huggingface.co/Qwen/Qwen3-1.7B/resolve/main/LICENSE
           cp native-android/LocalLLMPlugin.kt android/app/src/main/java/com/af4/ai/LocalLLMPlugin.kt
           cp native-android/MainActivity.java android/app/src/main/java/com/af4/ai/MainActivity.java
