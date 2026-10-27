@@ -79,7 +79,7 @@ class LocalLLMPlugin : Plugin() {
                         samplerConfig = SamplerConfig(topK = 20, topP = 0.9, temperature = 0.7)
                     )
                 )
-                val answer = conversation.sendMessage(prompt).text.trim()
+                val answer = conversation.sendMessage(prompt).toString().trim()
                 if (answer.isBlank()) throw IllegalStateException("مدل پاسخ متنی نساخت.")
                 val result = JSObject()
                 result.put("text", answer)
