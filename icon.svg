@@ -1,20 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-<defs>
- <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#19122d"/><stop offset=".58" stop-color="#0b0c14"/><stop offset="1" stop-color="#21113e"/></linearGradient>
- <linearGradient id="edge" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#c6a8ff"/><stop offset=".52" stop-color="#6b3df4"/><stop offset="1" stop-color="#f2cb69"/></linearGradient>
- <linearGradient id="metal" x1="0" y1="0" x2="0.8" y2="1"><stop stop-color="#fff"/><stop offset=".48" stop-color="#d9d4ec"/><stop offset="1" stop-color="#8e83b7"/></linearGradient>
- <filter id="glow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="8"/></filter>
-</defs>
-<rect width="512" height="512" rx="116" fill="#07070d"/>
-<rect x="18" y="18" width="476" height="476" rx="106" fill="url(#bg)" stroke="url(#edge)" stroke-width="5"/>
-<rect x="32" y="32" width="448" height="448" rx="94" fill="none" stroke="#b89aff" stroke-opacity=".15" stroke-width="2"/>
-<path d="M256 74l17 34 37 5-27 26 7 37-34-18-34 18 7-37-27-26 37-5z" fill="#f1ca68"/>
-<path d="M256 85l10 20 22 3-16 15 4 22-20-11-20 11 4-22-16-15 22-3z" fill="#fff0b8" opacity=".72"/>
-<ellipse cx="256" cy="280" rx="158" ry="100" fill="#8d53ff" opacity=".13" filter="url(#glow)"/>
-<path d="M106 325l71-143h39l-68 143h-42zm84 0 72-143h40l-72 143h-40zm92 0 69-143h44l-68 143h-45z" fill="url(#metal)"/>
-<path d="M292 183h80l-18 37h-81z" fill="#8e62ff"/>
-<path d="M353 255l45 0-17 36h-45z" fill="#9c70ff"/>
-<path d="M143 351h226" stroke="url(#edge)" stroke-width="5" stroke-linecap="round"/>
-<text x="256" y="407" text-anchor="middle" font-family="Arial,sans-serif" font-size="36" font-weight="700" letter-spacing="12" fill="#f5f2ff">A F 4</text>
-<text x="256" y="445" text-anchor="middle" font-family="Arial,sans-serif" font-size="18" font-weight="700" letter-spacing="10" fill="#b7a3f7">A I</text>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#171326"/><stop offset="1" stop-color="#080910"/></linearGradient>
+    <linearGradient id="line" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#c8b5ff"/><stop offset=".58" stop-color="#8057f5"/><stop offset="1" stop-color="#e8c66e"/></linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="#07070c"/>
+  <rect x="18" y="18" width="476" height="476" rx="100" fill="url(#bg)" stroke="url(#line)" stroke-width="5"/>
+  <rect x="32" y="32" width="448" height="448" rx="86" fill="none" stroke="#fff" stroke-opacity=".06" stroke-width="2"/>
+  <path d="M92 108h328" stroke="url(#line)" stroke-width="3" stroke-linecap="round" opacity=".9"/>
+  <text x="256" y="292" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="154" font-weight="800" letter-spacing="-9" fill="#f8f6ff">AF<tspan fill="#edc96d">4</tspan></text>
+  <path d="M150 329h212" stroke="url(#line)" stroke-width="4" stroke-linecap="round"/>
+  <text x="256" y="385" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="43" font-weight="700" letter-spacing="15" fill="#c5b4ff">A I</text>
+  <circle cx="398" cy="108" r="5" fill="#edc96d"/>
 </svg>

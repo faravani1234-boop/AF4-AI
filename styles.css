@@ -200,6 +200,21 @@ body{background:var(--bg);-webkit-font-smoothing:antialiased}
   .suggestions{margin-top:17px}
   .composer-wrap{height:116px;box-sizing:border-box;padding-top:10px;padding-bottom:max(12px,env(safe-area-inset-bottom));}
   .composer{width:100%;}
-  .settings-panel{display:none!important}
-  #mobileScrim,.sidebar.open{display:none!important}
+  .settings-button{display:grid!important}
+  .menu-button{display:grid!important}
+  .sidebar.open{display:flex!important;position:fixed;z-index:60;top:0;bottom:0;right:0;width:min(290px,86vw);height:100dvh;min-height:100dvh;overflow-y:auto;box-shadow:-20px 0 60px #0006}
+  .settings-panel:not([hidden]){display:flex!important;position:fixed;z-index:55;top:64px;bottom:12px;right:12px;width:min(390px,calc(100vw - 24px));max-width:calc(100vw - 24px);height:auto;max-height:calc(100dvh - 76px);overflow-y:auto;border:1px solid var(--line);border-radius:20px;box-shadow:0 24px 80px #0008}
+  .settings-panel[hidden]{display:none!important}
+  .mobile-scrim.active{display:block!important;position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.52);backdrop-filter:blur(4px)}
+  .breadcrumb:before{content:"AF4";display:inline-grid;place-items:center;min-width:36px;height:30px;padding:0 5px;border-radius:9px;background:linear-gradient(135deg,#9878ff,#5b3ac8);color:#fff;font-size:11px;font-weight:900;letter-spacing:-.5px;box-shadow:0 4px 14px #7658df35}
+  .breadcrumb:after{content:"AI";font-weight:800;letter-spacing:.6px;color:var(--text);margin-right:2px}
+  .breadcrumb strong{display:none}
+}
+.classic-mode .welcome-logo,.classic-mode .brand-mark{transform:none;border-radius:10px;box-shadow:none}
+.classic-mode .suggestion,.classic-mode .composer,.classic-mode .message,.classic-mode .settings-panel{border-radius:10px;box-shadow:none}
+.classic-mode .headline-gradient{background:none;color:var(--accent);-webkit-text-fill-color:var(--accent)}
+.classic-mode .send-button{border-radius:8px;box-shadow:none}
+.classic-mode .settings-panel{border:1px solid var(--line)}
+@media(min-width:801px){
+  .settings-panel:not([hidden]){top:76px;bottom:16px;right:16px;width:370px;max-width:calc(100vw - 32px);max-height:calc(100dvh - 92px)}
 }
