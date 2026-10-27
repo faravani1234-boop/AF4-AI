@@ -230,7 +230,7 @@ async function sendMessage(text,options={}){
  if(!options.retry){addMessage("user",value);memoryResult=rememberExplicitly(value);observeUserStyle(value);}
  input.value="";input.style.height="auto";
  if(!options.retry&&memoryResult){const replies={saved:"حتماً رفیق؛ این نکته رو فقط روی همین دستگاه ذخیره کردم. ❤️",duplicate:"این نکته از قبل توی حافظهٔ محلی‌ام هست.",blocked:"برای امنیتت، رمزها و اطلاعات محرمانه رو در حافظه ذخیره نمی‌کنم."};addMessage("assistant",replies[memoryResult]||replies.saved,true);return;}
- if(!options.retry){const memoryReply=handleLocalMemoryCommand(value);if(memoryReply){addMessage("assistant",memoryReply,true);return;}const preferenceReply=applySpokenPreferenceCommand(value);if(preferenceReply){addMessage("assistant",preferenceReply,true);return;}const instant=getInstantReply(value);if(instant){addMessage("assistant",instant,true);return;}}
+ if(!options.retry&&!outgoingAttachments.length){const memoryReply=handleLocalMemoryCommand(value);if(memoryReply){addMessage("assistant",memoryReply,true);return;}const preferenceReply=applySpokenPreferenceCommand(value);if(preferenceReply){addMessage("assistant",preferenceReply,true);return;}const instant=getInstantReply(value);if(instant){addMessage("assistant",instant,true);return;}}
  setConnectionStatus("checking","در حال آماده‌سازی پاسخ…");
  setSending(true);
  const pending=addMessage("assistant","دارم پاسخ رو آماده می‌کنم…",false);
