@@ -47,6 +47,21 @@ class LocalLLMPlugin : Plugin() {
     }
 
     @PluginMethod
+    fun prepare(call: PluginCall) {
+        worker.execute {
+            try {
+                ensureEngine()
+                val result = JSObject()
+                result.put("ready", true)
+                result.put("model", "Qwen3-1.7B Local")
+                call.resolve(result)
+            } catch (error: Exception) {
+                call.reject("آماده‌سازی مغز آفلاین ناموفق بود: " + (error.message ?: "خطای نامشخص"), error)
+            }
+        }
+    }
+
+    @PluginMethod
     fun generate(call: PluginCall) {
         val prompt = call.getString("text")?.trim().orEmpty()
         if (prompt.isBlank()) {
