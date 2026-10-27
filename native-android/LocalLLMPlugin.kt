@@ -24,7 +24,7 @@ class LocalLLMPlugin : Plugin() {
     @Volatile private var preparing = false
 
     private val modelName = "Qwen3-1.7B_dynamic_wi4b32_afp32.litertlm"
-    private val expectedSha256 = "2eeffef7b51bc3e1225ea69fe7aa5f417397934b56a5b6c20cc068d6fd2c918b"
+    private val expectedSha256 = "2a72330b504a6596d53a2c00923c57173b10f1b83e6a541213ffec08d1fc5de8"
     private val systemInstruction = """
         تو AF4 AI هستی، یک دستیار فارسی‌زبان صمیمی، دقیق و خلاق.
         به فارسی طبیعی و محاوره‌ای پاسخ بده و لحن را با کاربر هماهنگ کن.
