@@ -176,3 +176,30 @@ body{background:var(--bg);-webkit-font-smoothing:antialiased}
 @media(max-width:520px){.sticker-tray{gap:4px;padding:8px}.sticker-choice img{max-width:78px}.chat-sticker{width:150px}}
 
 .memory-nudge{display:flex;align-items:center;justify-content:space-between;gap:12px;max-width:680px;margin:12px auto;padding:12px 14px;border:1px solid rgba(160,115,255,.35);border-radius:15px;background:rgba(125,75,230,.09);color:var(--text,#f3f0ff);font-size:13px;line-height:1.8}.memory-nudge[hidden]{display:none!important}.memory-nudge button{flex:0 0 auto;border:1px solid rgba(160,115,255,.4);border-radius:10px;padding:8px 11px;background:rgba(140,90,255,.16);color:inherit;font:inherit;cursor:pointer}
+
+
+/* AF4 AI: immersive single-screen chat requested for the Android app. */
+@media (min-width:0px){
+  .sidebar{display:none!important}
+  .app-shell{display:block!important;min-height:100dvh;height:100dvh;overflow:hidden}
+  .main-panel{width:100%!important;min-width:0!important;height:100dvh;min-height:0}
+  .topbar{height:54px;padding:0 16px;justify-content:space-between}
+  .topbar-start{min-width:0}
+  .menu-button,.breadcrumb>span,.crumb-divider,.settings-button,.profile-chip,.connection-pill,.installButton{display:none!important}
+  .breadcrumb{font-size:14px}
+  .breadcrumb:after{content:"AF4 AI";font-weight:750;letter-spacing:.2px;color:var(--text)}
+  .breadcrumb strong{display:none}
+  .topbar-actions{gap:6px}
+  .theme-button{display:flex!important;width:34px;height:34px;min-width:34px;align-items:center;justify-content:center;border-radius:50%;font-size:16px}
+  .chat-area{height:calc(100dvh - 54px - 116px);min-height:0;overflow-y:auto;padding-top:14px;padding-bottom:12px}
+  .welcome{padding:16px 0 12px}
+  .welcome-brand{margin-bottom:10px}
+  .welcome-logo{width:46px;height:46px;border-radius:15px}
+  .welcome h1{font-size:clamp(24px,5vw,34px);margin:8px 0}
+  .welcome-copy{font-size:12px}
+  .suggestions{margin-top:17px}
+  .composer-wrap{height:116px;box-sizing:border-box;padding-top:10px;padding-bottom:max(12px,env(safe-area-inset-bottom));}
+  .composer{width:100%;}
+  .settings-panel{display:none!important}
+  #mobileScrim,.sidebar.open{display:none!important}
+}
