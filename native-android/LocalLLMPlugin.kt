@@ -98,6 +98,9 @@ class LocalLLMPlugin : Plugin() {
     private fun ensureEngine() {
         if (engine != null) return
         val target = modelFile()
+        if (target.isFile && target.length() >= 900_000_000L && !sha256(target).equals(expectedSha256, ignoreCase = true)) {
+            target.delete()
+        }
         if (!target.isFile || target.length() < 900_000_000L) {
             if (preparing) throw IllegalStateException("آماده‌سازی مدل در حال انجام است؛ کمی صبر کن.")
             preparing = true
