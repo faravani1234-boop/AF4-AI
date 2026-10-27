@@ -31,17 +31,30 @@ function clearLocalMemory(){
  updateMemoryNudge();
 }
 function rememberExplicitly(raw){
- const match=String(raw||"").trim().match(/^(?:یادت باشه|به خاطر بسپار|یادت بمونه|یادت نره|این رو یادداشت کن)\s*[:،-]?\s*(.{3,240})$/i);
- if(!match)return;
+ const match=String(raw||"").trim().match(/^(?:یادت باشه|به خاطر بسپار|یادت بمونه|یادت نره|این رو یادداشت کن|این رو به خاطر بسپار|این رو درباره من یادت باشه|این رو درباره‌م یادت بمونه|برای دفعات بعد یادم نگه دار)\s*[:،-]?\s*(.{3,240})$/i);
+ if(!match)return false;
  const note=match[1].trim();
- if(/رمز|پسورد|گذرواژه|کد ملی|شماره کارت|شماره حساب|api[ -]?key|token|password|secret/i.test(note))return;
+ if(/رمز|پسورد|گذرواژه|کد ملی|شماره کارت|شماره حساب|api[ -]?key|token|password|secret/i.test(note))return "blocked";
  const items=localMemoryNotes.split(/\n/).map(x=>x.trim()).filter(Boolean);
- if(items.some(x=>x.toLowerCase()===note.toLowerCase()))return;
+ if(items.some(x=>x.toLowerCase()===note.toLowerCase()))return "duplicate";
  items.push(note);localMemoryNotes=items.slice(-20).join("\n").slice(0,2000);
  try{localStorage.setItem(MEMORY_KEY,localMemoryNotes);}catch{}
  const field=$("localMemoryNotes");if(field)field.value=localMemoryNotes;
  const status=$("localMemoryStatus");if(status)status.textContent="این نکته در حافظهٔ محلی همین دستگاه ذخیره شد.";
  updateMemoryNudge();
+ return "saved";
+}
+function handleLocalMemoryCommand(raw){
+ const q=String(raw||"").toLowerCase().replace(/[يى]/g,"ی").replace(/ك/g,"ک").replace(/[\u200c\u200e\u200f]/g," ").replace(/[؟?!！،,.؛:]+/g," ").replace(/\s+/g," ").trim();
+ if(/(?:چی|چه چیز|چه چیزهایی|کدوم چیزها).*(?:یادت هست|یادت مونده|تو حافظه|ذخیره کردی)|(?:حافظه|یادداشت(?:هام|های من)?).*(?:نشون بده|بگو|چیه|چی هست|نمایش بده)/.test(q)){
+  const notes=localMemoryNotes.split("\n").map(x=>x.trim()).filter(Boolean);
+  return notes.length?"این‌ها رو در حافظهٔ محلی همین دستگاه ذخیره کرده‌ای:\n"+notes.map((x,i)=>(i+1)+". "+x).join("\n"):"فعلاً یادداشت شخصی‌ای در حافظهٔ محلی ذخیره نشده. برای ذخیره بگو «یادت باشه: ...».";
+ }
+ if(/(?:حافظه|یادداشت(?:هام|های من)?|چیزهایی که ازم یادت مونده).*(?:پاک کن|حذف کن|فراموش کن|خالی کن)|(?:همه چیز|همه چی).*(?:ازم یادت مونده).*(?:پاک|حذف|فراموش)/.test(q)){
+  if(typeof window.confirm==="function"&&window.confirm("یادداشت‌های شخصی ذخیره‌شده روی همین دستگاه پاک شوند؟ این کار قابل بازگشت نیست.")){clearLocalMemory();return "یادداشت‌های شخصی محلی پاک شدند. تحلیل سبک گفتارت جداگانه ذخیره می‌شود؛ اگر خواستی آن را هم پاک کنی، باید از بخش کنترل حافظه استفاده کنی.";}
+  return "باشه، چیزی رو پاک نکردم.";
+ }
+ return null;
 }
 function updateMemoryNudge(){
  const box=$("memoryNudge");if(!box)return;box.hidden=!localMemoryNotes.trim();
@@ -210,9 +223,11 @@ async function sendMessage(text,options={}){
  const value=(text??input.value).trim();
  if(!value||sending)return;
  welcome.hidden=true;
- if(!options.retry){addMessage("user",value);rememberExplicitly(value);observeUserStyle(value);}
+ let memoryResult=false;
+ if(!options.retry){addMessage("user",value);memoryResult=rememberExplicitly(value);observeUserStyle(value);}
  input.value="";input.style.height="auto";
- if(!options.retry){const preferenceReply=applySpokenPreferenceCommand(value);if(preferenceReply){addMessage("assistant",preferenceReply,true);return;}const instant=getInstantReply(value);if(instant){addMessage("assistant",instant,true);return;}}
+ if(!options.retry&&memoryResult){const replies={saved:"حتماً رفیق؛ این نکته رو فقط روی همین دستگاه ذخیره کردم. ❤️",duplicate:"این نکته از قبل توی حافظهٔ محلی‌ام هست.",blocked:"برای امنیتت، رمزها و اطلاعات محرمانه رو در حافظه ذخیره نمی‌کنم."};addMessage("assistant",replies[memoryResult]||replies.saved,true);return;}
+ if(!options.retry){const memoryReply=handleLocalMemoryCommand(value);if(memoryReply){addMessage("assistant",memoryReply,true);return;}const preferenceReply=applySpokenPreferenceCommand(value);if(preferenceReply){addMessage("assistant",preferenceReply,true);return;}const instant=getInstantReply(value);if(instant){addMessage("assistant",instant,true);return;}}
  setConnectionStatus("checking","در حال آماده‌سازی پاسخ…");
  setSending(true);
  const pending=addMessage("assistant","دارم پاسخ رو آماده می‌کنم…",false);
