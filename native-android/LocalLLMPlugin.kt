@@ -86,9 +86,9 @@ class LocalLLMPlugin : Plugin() {
             preparing = true
             try {
                 val temp = File(context.filesDir, "$modelName.partial")
-                val total = assets.openFd("llm/$modelName").use { it.length }
+                val total = context.assets.openFd("llm/$modelName").use { it.length }
                 var copied = 0L
-                assets.open("llm/$modelName").use { input ->
+                context.assets.open("llm/$modelName").use { input ->
                     temp.outputStream().buffered().use { output ->
                         val buffer = ByteArray(1024 * 1024)
                         while (true) {
