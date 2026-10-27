@@ -316,7 +316,8 @@ form.addEventListener("submit",e=>{e.preventDefault();sendMessage();});input.add
 $("newChat").addEventListener("click",startNewChat);document.querySelectorAll("[data-prompt]").forEach(b=>b.addEventListener("click",()=>sendMessage(b.dataset.prompt)));$("settingsToggle").addEventListener("click",()=>{$("settingsPanel").hidden=false;if(window.innerWidth<=800)$("mobileScrim").classList.add("active");});$("prepareLocalModel").addEventListener("click",prepareLocalModel);
 $("saveLocalMemory").addEventListener("click",saveLocalMemory);
 $("clearLocalMemory").addEventListener("click",clearLocalMemory);
-$("sharePersonalization").addEventListener("change",saveSharePreference);\n$("clearStyleProfile").addEventListener("click",clearStyleProfile);
+$("sharePersonalization").addEventListener("change",saveSharePreference);
+$("clearStyleProfile").addEventListener("click",clearStyleProfile);
 $("memoryNudgeButton").addEventListener("click",()=>{closePanels();const first=localMemoryNotes.split("\\n").map(x=>x.trim()).filter(Boolean)[0]||"";input.value=first?"می‌خواهم دربارهٔ این موضوع ادامه بدهم: "+first:"کمکم کن یکی از موضوع‌های قبلی را مرور کنم.";input.dispatchEvent(new Event("input"));input.focus();});
 $("stickerButton").addEventListener("click",()=>{$("stickerTray").hidden=!$("stickerTray").hidden;});
 document.querySelectorAll(".sticker-choice").forEach(button=>button.addEventListener("click",()=>{
