@@ -58,16 +58,17 @@ jobs:
           import re
           gradle = Path("android/app/build.gradle")
           text = gradle.read_text()
-          text = text.replace("id 'com.android.application'", "id 'com.android.application'\\n    id 'org.jetbrains.kotlin.android' version '2.1.0'")
+          nl = chr(10)
+          text = text.replace("id 'com.android.application'", "id 'com.android.application'" + nl + "    id 'org.jetbrains.kotlin.android' version '2.1.0'")
           if "litertlm-android" not in text:
-              text = text.replace("dependencies {", "dependencies {\\n    implementation 'com.google.ai.edge.litertlm:litertlm-android:0.18.0'", 1)
+              text = text.replace("dependencies {", "dependencies {" + nl + "    implementation 'com.google.ai.edge.litertlm:litertlm-android:0.18.0'", 1)
           if "noCompress" not in text:
-              text = text.replace("android {", "android {\\n    androidResources { noCompress += ['litertlm'] }\\n    kotlinOptions { jvmTarget = '17' }", 1)
+              text = text.replace("android {", "android {" + nl + "    androidResources { noCompress += ['litertlm'] }" + nl + "    kotlinOptions { jvmTarget = '17' }", 1)
           gradle.write_text(text)
           variables = Path("android/variables.gradle")
           if variables.exists():
               v = variables.read_text()
-              v = re.sub(r'minSdkVersion\\s*=\\s*23', 'minSdkVersion = 24', v)
+              v = re.sub(r'minSdkVersion[ ]*=[ ]*23', 'minSdkVersion = 24', v)
               variables.write_text(v)
           PY
           npx cap sync android
