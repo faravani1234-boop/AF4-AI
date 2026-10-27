@@ -5,6 +5,8 @@ on:
     paths:
       - 'index.html'
       - 'app.js'
+      - 'native-android/**'
+      - 'tests/**'
       - 'offline-brain.js'
       - 'styles.css'
       - 'server.js'
