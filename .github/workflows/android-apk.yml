@@ -46,6 +46,30 @@ jobs:
           cp index.html app.js offline-brain.js styles.css manifest.webmanifest icon.svg sw.js www/
           rm -rf android
           npx cap add android
+          mkdir -p android/app/src/main/assets/llm android/app/src/main/java/com/af4/ai
+          echo "Downloading the Qwen3 1.7B offline model (~977 MB)..."
+          curl --fail --location --retry 3 --retry-delay 3 --connect-timeout 30 --output android/app/src/main/assets/llm/Qwen3-1.7B_dynamic_wi4b32_afp32.litertlm https://huggingface.co/litert-community/Qwen3-1.7B/resolve/main/Qwen3-1.7B_dynamic_wi4b32_afp32.litertlm
+          echo "2eeffef7b51bc3e1225ea69fe7aa5f417397934b56a5b6c20cc068d6fd2c918b  android/app/src/main/assets/llm/Qwen3-1.7B_dynamic_wi4b32_afp32.litertlm" | sha256sum --check
+          curl --fail --location --retry 3 --output android/app/src/main/assets/llm/QWEN3-LICENSE.txt https://huggingface.co/Qwen/Qwen3-1.7B/resolve/main/LICENSE
+          cp native-android/LocalLLMPlugin.kt android/app/src/main/java/com/af4/ai/LocalLLMPlugin.kt
+          cp native-android/MainActivity.java android/app/src/main/java/com/af4/ai/MainActivity.java
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          gradle = Path("android/app/build.gradle")
+          text = gradle.read_text()
+          text = text.replace("id 'com.android.application'", "id 'com.android.application'\\n    id 'org.jetbrains.kotlin.android' version '2.1.0'")
+          if "litertlm-android" not in text:
+              text = text.replace("dependencies {", "dependencies {\\n    implementation 'com.google.ai.edge.litertlm:litertlm-android:0.18.0'", 1)
+          if "noCompress" not in text:
+              text = text.replace("android {", "android {\\n    androidResources { noCompress += ['litertlm'] }\\n    kotlinOptions { jvmTarget = '17' }", 1)
+          gradle.write_text(text)
+          variables = Path("android/variables.gradle")
+          if variables.exists():
+              v = variables.read_text()
+              v = re.sub(r'minSdkVersion\\s*=\\s*23', 'minSdkVersion = 24', v)
+              variables.write_text(v)
+          PY
           npx cap sync android
           npx capacitor-assets generate --android
       - name: Verify Android package identity
