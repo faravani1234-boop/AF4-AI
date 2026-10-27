@@ -215,16 +215,59 @@ async function sendMessage(text,options={}){
   setSending(false);input.focus();
  }
 }
+async function refreshLocalModelStatus(){
+ const status=$("localModelStatus"),button=$("prepareLocalModel");
+ if(!status||!button)return;
+ const bridge=window.Capacitor?.Plugins?.LocalLLM;
+ if(!bridge||typeof bridge.status!=="function"){
+  status.textContent="مغز زبانی کامل مخصوص اندروید است؛ نسخهٔ وب پاسخ‌های فوری و پایهٔ آفلاین را دارد.";
+  button.textContent="فقط در نسخهٔ اندروید";
+  button.disabled=true;
+  return;
+ }
+ try{
+  const state=await bridge.status();
+  if(state.ready){status.textContent="مغز آفلاین آماده است؛ می‌توانی بدون اینترنت هم گفت‌وگو کنی.";button.textContent="مدل آفلاین آماده است";button.disabled=false;}
+  else if(state.available){status.textContent="فایل مدل روی دستگاه هست؛ برای بارگذاری و شروع چت آفلاین آماده‌اش کن.";button.textContent="بارگذاری مغز آفلاین";button.disabled=false;}
+  else{status.textContent="مدل همراه برنامه است؛ برای آماده‌سازی اولیه و بررسی سلامت فایل، دکمه را بزن.";button.textContent="آماده‌سازی مغز آفلاین";button.disabled=false;}
+ }catch{status.textContent="وضعیت مدل آفلاین قابل بررسی نیست؛ می‌توانی آماده‌سازی را امتحان کنی.";button.disabled=false;}
+}
+async function prepareLocalModel(){
+ const bridge=window.Capacitor?.Plugins?.LocalLLM;
+ const status=$("localModelStatus"),button=$("prepareLocalModel");
+ if(!bridge||typeof bridge.prepare!=="function"){await refreshLocalModelStatus();return;}
+ button.disabled=true;
+ button.textContent="در حال آماده‌سازی…";
+ status.textContent="ممکن است اولین بار چند دقیقه طول بکشد؛ برنامه را نبند.";
+ let listener=null;
+ try{
+  if(typeof bridge.addListener==="function"){
+   listener=await bridge.addListener("modelProgress",event=>{
+    const percent=Number(event?.percent);
+    if(Number.isFinite(percent)&&percent>=0)status.textContent="در حال کپی و بررسی مدل آفلاین: "+percent+"٪";
+   });
+  }
+  await bridge.prepare();
+  status.textContent="مغز آفلاین آماده است؛ گفت‌وگوی متنی می‌تواند روی همین دستگاه اجرا شود.";
+  button.textContent="مدل آفلاین آماده است";
+ }catch(error){
+  status.textContent="آماده‌سازی ناموفق بود: "+String(error?.message||error||"خطای نامشخص");
+  button.textContent="تلاش دوباره برای آماده‌سازی";
+ }finally{
+  try{await listener?.remove?.();}catch{}
+  button.disabled=false;
+ }
+}
 function closePanels(){ $("sidebar").classList.remove("open");$("settingsPanel").hidden=true;$("mobileScrim").classList.remove("active");}
 form.addEventListener("submit",e=>{e.preventDefault();sendMessage();});input.addEventListener("input",()=>{input.style.height="auto";input.style.height=Math.min(input.scrollHeight,160)+"px";});input.addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();form.requestSubmit();}});
-$("newChat").addEventListener("click",startNewChat);document.querySelectorAll("[data-prompt]").forEach(b=>b.addEventListener("click",()=>sendMessage(b.dataset.prompt)));$("settingsToggle").addEventListener("click",()=>{$("settingsPanel").hidden=false;if(window.innerWidth<=800)$("mobileScrim").classList.add("active");});$("settingsClose").addEventListener("click",closePanels);$("settingsDone").addEventListener("click",closePanels);$("menuToggle").addEventListener("click",()=>{$("sidebar").classList.toggle("open");$("mobileScrim").classList.toggle("active",$("sidebar").classList.contains("open"));});$("sidebarClose").addEventListener("click",closePanels);$("mobileScrim").addEventListener("click",closePanels);
+$("newChat").addEventListener("click",startNewChat);document.querySelectorAll("[data-prompt]").forEach(b=>b.addEventListener("click",()=>sendMessage(b.dataset.prompt)));$("settingsToggle").addEventListener("click",()=>{$("settingsPanel").hidden=false;if(window.innerWidth<=800)$("mobileScrim").classList.add("active");});$("prepareLocalModel").addEventListener("click",prepareLocalModel);$("settingsClose").addEventListener("click",closePanels);$("settingsDone").addEventListener("click",closePanels);$("menuToggle").addEventListener("click",()=>{$("sidebar").classList.toggle("open");$("mobileScrim").classList.toggle("active",$("sidebar").classList.contains("open"));});$("sidebarClose").addEventListener("click",closePanels);$("mobileScrim").addEventListener("click",closePanels);
 $("themeToggle").addEventListener("click",()=>{$("themeSelect").value=document.body.classList.contains("dark")?"light":"dark";applySettings();saveSettings();});
 ["assistantName","accentColor","compactMode","apiBaseUrl","themeSelect"].forEach(id=>$(id).addEventListener("change",()=>{applySettings();saveSettings();if(id==="apiBaseUrl")checkConnection();}));$("assistantName").addEventListener("input",()=>{applySettings();saveSettings();});
 $("toneSelect").addEventListener("change",saveProfile);$("profileNav").addEventListener("click",()=>{closePanels();sendMessage("لطفاً بر اساس اطلاعاتی که درباره سازنده‌ات داری، خودت را معرفی کن و توضیح بده چه چیزهایی درباره من، علایقم و پروژه‌های AF4 می‌دانی. اگر چیزی را نمی‌دانی حدس نزن.");});$("profileButton").addEventListener("click",()=>{$("settingsPanel").hidden=false;if(window.innerWidth<=800)$("mobileScrim").classList.add("active");});$("homeNav").addEventListener("click",startNewChat);
 $("clearHistory").addEventListener("click",()=>{if(!sessions.length)return;if(confirm("همه گفت‌وگوهای ذخیره‌شده در این مرورگر پاک شوند؟")){sessions=[];persist();startNewChat();}});
 $("composerPlus").addEventListener("click",()=>{input.value=input.value?input.value+"\n":"کمکم کن این ایده را مرحله‌به‌مرحله بررسی کنم: ";input.focus();input.dispatchEvent(new Event("input"));});
 window.matchMedia?.("(prefers-color-scheme: dark)").addEventListener?.("change",()=>{if($("themeSelect").value==="system")applySettings();});
-applySettings();loadProfile();renderHistory();checkConnection();
+applySettings();loadProfile();renderHistory();checkConnection();refreshLocalModelStatus();
 
 $("onboardingForm").addEventListener("submit",e=>{e.preventDefault();$("profileName").value=$("onboardingName").value.trim();$("profileAbout").value=$("onboardingAbout").value.trim();saveProfile();$("onboarding").hidden=true;input.focus();});
 if(!profile.name){$("onboardingName").value="";$("onboardingAbout").value="";$("onboarding").hidden=false;}
