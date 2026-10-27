@@ -5,6 +5,9 @@ on:
     paths:
       - 'index.html'
       - 'app.js'
+      - 'native-android/**'
+      - 'tests/**'
+      - 'offline-brain.js'
       - 'styles.css'
       - 'server.js'
       - 'manifest.webmanifest'
@@ -25,6 +28,12 @@ jobs:
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
+      - name: Cache verified on-device model
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/af4-ai-model
+          key: af4-qwen3-1.7b-87603f0
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -34,15 +43,74 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
+      - name: Test offline Persian brain
+        run: npm test
       - name: Prepare app and install Capacitor
         run: |
           npm install
           npm install --no-save @capacitor/core@^7 @capacitor/cli@^7 @capacitor/android@^7 @capacitor/assets sharp
           mkdir -p www resources
           node --input-type=module -e "import sharp from 'sharp'; await sharp('icon.svg').resize(1024,1024).png().toFile('resources/icon.png'); await sharp({create:{width:2732,height:2732,channels:4,background:'#11121a'}}).png().toFile('resources/splash.png')"
-          cp index.html app.js styles.css manifest.webmanifest icon.svg sw.js www/
+          cp index.html app.js offline-brain.js styles.css manifest.webmanifest icon.svg sw.js www/
           rm -rf android
           npx cap add android
+          mkdir -p android/app/src/main/assets/llm android/app/src/main/java/com/af4/ai "$HOME/.cache/af4-ai-model"
+          # Model artifact is pinned to revision 87603f0 and verified with its published SHA-256.
+          MODEL_NAME="Qwen3-1.7B_dynamic_wi4b32_afp32.litertlm"
+          MODEL_SHA="2a72330b504a6596d53a2c00923c57173b10f1b83e6a541213ffec08d1fc5de8"
+          MODEL_CACHE="$HOME/.cache/af4-ai-model/$MODEL_NAME"
+          if [ ! -f "$MODEL_CACHE" ] || ! echo "$MODEL_SHA  $MODEL_CACHE" | sha256sum --check --status; then
+            echo "Downloading the Qwen3 1.7B offline model (~977 MB)..."
+            curl --fail --location --retry 3 --retry-delay 3 --connect-timeout 30 --output "$MODEL_CACHE" "https://huggingface.co/litert-community/Qwen3-1.7B/resolve/87603f0/$MODEL_NAME"
+            echo "$MODEL_SHA  $MODEL_CACHE" | sha256sum --check
+          else
+            echo "Using the cached, verified Qwen3 model."
+          fi
+          cp "$MODEL_CACHE" "android/app/src/main/assets/llm/$MODEL_NAME"
+          echo "$MODEL_SHA  android/app/src/main/assets/llm/$MODEL_NAME" | sha256sum --check
+          curl --fail --location --retry 3 --output android/app/src/main/assets/llm/QWEN3-LICENSE.txt https://huggingface.co/Qwen/Qwen3-1.7B/resolve/main/LICENSE
+          cp native-android/LocalLLMPlugin.kt android/app/src/main/java/com/af4/ai/LocalLLMPlugin.kt
+          cp native-android/MainActivity.java android/app/src/main/java/com/af4/ai/MainActivity.java
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          nl = chr(10)
+          gradle = Path("android/app/build.gradle")
+          text = gradle.read_text()
+          if "org.jetbrains.kotlin.android" not in text:
+              if "plugins {" in text and ("id 'com.android.application'" in text or 'id "com.android.application"' in text):
+                  if "id 'com.android.application'" in text:
+                      text = text.replace("id 'com.android.application'", "id 'com.android.application'" + nl + "    id 'org.jetbrains.kotlin.android' version '2.4.0'", 1)
+                  else:
+                      text = text.replace('id "com.android.application"', 'id "com.android.application"' + nl + "    id 'org.jetbrains.kotlin.android' version '2.1.0'", 1)
+              else:
+                  if "apply plugin: 'com.android.application'" in text:
+                      text = text.replace("apply plugin: 'com.android.application'", "apply plugin: 'com.android.application'" + nl + "apply plugin: 'org.jetbrains.kotlin.android'", 1)
+                  else:
+                      text = text.replace('apply plugin: "com.android.application"', 'apply plugin: "com.android.application"' + nl + "apply plugin: 'org.jetbrains.kotlin.android'", 1)
+                  root = Path("android/build.gradle")
+                  root_text = root.read_text()
+                  if "kotlin-gradle-plugin" not in root_text:
+                      if "dependencies {" in root_text:
+                          root_text = root_text.replace("dependencies {", "dependencies {" + nl + "        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.4.0'", 1)
+                      else:
+                          root_text += nl + "buildscript { repositories { google(); mavenCentral() }; dependencies { classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.1.0' } }" + nl
+                      root.write_text(root_text)
+          if "litertlm-android" not in text:
+              text = text.replace("dependencies {", "dependencies {" + nl + "    implementation 'com.google.ai.edge.litertlm:litertlm-android:0.18.0'", 1)
+          if "noCompress" not in text:
+              text = text.replace("android {", "android {" + nl + "    androidResources { noCompress += ['litertlm'] }", 1)
+          if "KotlinCompile" not in text:
+              text += nl + "tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach { kotlinOptions.jvmTarget = '21' }" + nl
+          text = re.sub(r'minSdkVersion[ ]+23', 'minSdkVersion 24', text)
+          text = re.sub(r'minSdk[ ]+23', 'minSdk 24', text)
+          gradle.write_text(text)
+          variables = Path("android/variables.gradle")
+          if variables.exists():
+              v = variables.read_text()
+              v = re.sub(r'minSdkVersion[ ]*=[ ]*23', 'minSdkVersion = 24', v)
+              variables.write_text(v)
+          PY
           npx cap sync android
           npx capacitor-assets generate --android
       - name: Verify Android package identity

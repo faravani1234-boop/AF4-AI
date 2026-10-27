@@ -127,17 +127,147 @@ getInstantReply = function(raw) { return AF4_OFFLINE_LANGUAGE.answer(raw) || AF4
 function setConnectionStatus(state,label){const pill=$("connectionPill"),text=$("connectionText");if(!pill||!text)return;pill.dataset.state=state;text.textContent=label;}
 async function checkConnection(){const base=(String($("apiBaseUrl")?.value||"").trim()||DEFAULT_API_BASE_URL).replace(/\/+$/,"");const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),7000);try{const r=await fetch(base+"/api/health",{method:"GET",cache:"no-store",signal:controller.signal});if(!r.ok)throw new Error("health check failed");const data=await r.json();if(data&&data.ok){setConnectionStatus("online","سرور در دسترس");return true;}throw new Error("invalid health response");}catch{setConnectionStatus("offline","عدم اتصال به سرور");return false;}finally{clearTimeout(timer);}}
 function setSending(value){sending=value;const b=form.querySelector('button[type="submit"]');if(b){b.disabled=value;b.textContent=value?"…":"↑";}input.disabled=value;}
-async function sendMessage(text,options={}){const value=(text??input.value).trim();if(!value||sending)return;welcome.hidden=true;if(!options.retry)addMessage("user",value);input.value="";input.style.height="auto";if(!options.retry){const instant=getInstantReply(value);if(instant){addMessage("assistant",instant,true);return;}}setConnectionStatus("checking","در حال اتصال…");setSending(true);const pending=addMessage("assistant","دارم پاسخ رو آماده می‌کنم…",false);try{const base=(String($("apiBaseUrl")?.value||"").trim()||DEFAULT_API_BASE_URL).replace(/\/+$/,"");const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),55000);let r;let fetchError;const apiBases=[...new Set([base,DEFAULT_API_BASE_URL])];try{for(const apiBase of apiBases){try{r=await fetch(apiBase+"/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({profile:{name:profile.name,about:profile.about,tone:profile.tone},messages:currentSession.map(m=>({role:m.role,content:m.text}))}),signal:controller.signal,cache:"no-store"});break;}catch(err){fetchError=err;if(err.name==="AbortError")throw err;}}if(!r)throw fetchError||new Error("سرور از این اتصال در دسترس نیست.");}finally{clearTimeout(timer);}const data=await r.json().catch(()=>({}));if(!r.ok)throw new Error(data.error||"ارتباط با دستیار برقرار نشد.");if(typeof data.reply!=="string"||!data.reply.trim())throw new Error("سرور پاسخ متنی معتبر نفرستاد.");setConnectionStatus("online","سرور در دسترس");pending.remove();addMessage("assistant",data.reply.trim(),true,data.provider,data.model);}catch(e){pending.remove();const reason=e.name==="AbortError"?"زمان انتظار تمام شد. سرور یا مدل دیر پاسخ داد.":(e.message||"اتصال برقرار نشد.");setConnectionStatus("offline","پاسخ دریافت نشد");const error=addMessage("assistant","فعلاً نتونستم پاسخ بگیرم. پیام تو پاک نشده؛ می‌تونی دوباره تلاش کنی.\n\nجزئیات: "+reason,false);const retry=document.createElement("button");retry.type="button";retry.className="message-retry";retry.textContent="تلاش دوباره";retry.addEventListener("click",()=>{error.remove();sendMessage(value,{retry:true});});error.append(retry);}finally{setSending(false);input.focus();}}
+async function localModelReply(value,pending){
+ const bridge=window.Capacitor?.Plugins?.LocalLLM;
+ if(!bridge||typeof bridge.generate!=="function")return null;
+ let progressListener=null;
+ try{
+  if(typeof bridge.addListener==="function"){
+   progressListener=await bridge.addListener("modelProgress",event=>{
+    const body=pending?.querySelector(".message-body");
+    if(body){
+     const percent=Number(event?.percent);
+     body.textContent=Number.isFinite(percent)&&percent>0&&percent<100
+      ? "بار اول دارم مغز آفلاین را آماده می‌کنم… "+percent+"٪"
+      : "دارم پاسخ را با مغز آفلاین آماده می‌کنم…";
+    }
+   });
+  }
+  const transcript=currentSession.slice(-12).map(m=>(m.role==="user"?"کاربر":"AF4 AI")+": "+m.text).join("\n");
+  const prompt="به فارسی طبیعی و محاوره‌ای پاسخ بده. سابقهٔ اخیر گفت‌وگو را در نظر بگیر، تکرار بی‌دلیل نکن و به آخرین پیام پاسخ بده. اگر سؤال به اطلاعات زنده نیاز دارد و اینترنت در دسترس نیست، این محدودیت را شفاف بگو.\n\n"+transcript+"\n\nپاسخ به آخرین پیام:";
+  const result=await bridge.generate({text:prompt});
+  const answer=String(result?.text||"").trim();
+  return answer||null;
+ }finally{
+  try{await progressListener?.remove?.();}catch{}
+ }
+}
+async function sendMessage(text,options={}){
+ const value=(text??input.value).trim();
+ if(!value||sending)return;
+ welcome.hidden=true;
+ if(!options.retry)addMessage("user",value);
+ input.value="";input.style.height="auto";
+ if(!options.retry){const instant=getInstantReply(value);if(instant){addMessage("assistant",instant,true);return;}}
+ setConnectionStatus("checking","در حال آماده‌سازی پاسخ…");
+ setSending(true);
+ const pending=addMessage("assistant","دارم پاسخ رو آماده می‌کنم…",false);
+ try{
+  if(navigator.onLine===false){
+   setConnectionStatus("offline","حالت آفلاین");
+   const body=pending.querySelector(".message-body");
+   if(body)body.textContent="اینترنت در دسترس نیست؛ دارم مغز آفلاین را آماده می‌کنم…";
+   const local=await localModelReply(value,pending);
+   if(local){pending.remove();setConnectionStatus("offline","پاسخ با مدل محلی");addMessage("assistant",local,true,"AF4 Local","Qwen3-1.7B");return;}
+   throw new Error("مدل محلی هنوز در دسترس نیست یا این نسخهٔ برنامه از اجرای مدل بومی پشتیبانی نمی‌کند.");
+  }
+  const base=(String($("apiBaseUrl")?.value||"").trim()||DEFAULT_API_BASE_URL).replace(/\/+$/,"");
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),55000);
+  let r;let fetchError;
+  const apiBases=[...new Set([base,DEFAULT_API_BASE_URL])];
+  try{
+   for(const apiBase of apiBases){
+    try{
+     r=await fetch(apiBase+"/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({profile:{name:profile.name,about:profile.about,tone:profile.tone},messages:currentSession.map(m=>({role:m.role,content:m.text}))}),signal:controller.signal,cache:"no-store"});
+     break;
+    }catch(err){fetchError=err;if(err.name==="AbortError")throw err;}
+   }
+   if(!r)throw fetchError||new Error("سرور از این اتصال در دسترس نیست.");
+  }finally{clearTimeout(timer);}
+  const data=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error(data.error||"ارتباط با دستیار برقرار نشد.");
+  if(typeof data.reply!=="string"||!data.reply.trim())throw new Error("سرور پاسخ متنی معتبر نفرستاد.");
+  setConnectionStatus("online","سرور در دسترس");
+  pending.remove();
+  addMessage("assistant",data.reply.trim(),true,data.provider,data.model);
+ }catch(e){
+  const body=pending.querySelector(".message-body");
+  if(body)body.textContent="اتصال آنلاین پاسخ نداد؛ دارم مدل آفلاین را امتحان می‌کنم…";
+  let local=null;let localError=null;
+  try{local=await localModelReply(value,pending);}catch(err){localError=err;}
+  if(local){
+   pending.remove();
+   setConnectionStatus("offline","پاسخ با مدل محلی");
+   addMessage("assistant",local,true,"AF4 Local","Qwen3-1.7B");
+   return;
+  }
+  pending.remove();
+  const reason=e.name==="AbortError"?"زمان انتظار سرور تمام شد.":(e.message||"اتصال برقرار نشد.");
+  const extra=localError?.message?("\n\nمدل آفلاین: "+localError.message):"";
+  setConnectionStatus("offline","پاسخ دریافت نشد");
+  const error=addMessage("assistant","فعلاً نتونستم پاسخ بگیرم. پیام تو پاک نشده؛ می‌تونی دوباره تلاش کنی.\n\nجزئیات: "+reason+extra,false);
+  const retry=document.createElement("button");
+  retry.type="button";retry.className="message-retry";retry.textContent="تلاش دوباره";
+  retry.addEventListener("click",()=>{error.remove();sendMessage(value,{retry:true});});
+  error.append(retry);
+ }finally{
+  setSending(false);input.focus();
+ }
+}
+async function refreshLocalModelStatus(){
+ const status=$("localModelStatus"),button=$("prepareLocalModel");
+ if(!status||!button)return;
+ const bridge=window.Capacitor?.Plugins?.LocalLLM;
+ if(!bridge||typeof bridge.status!=="function"){
+  status.textContent="مغز زبانی کامل مخصوص اندروید است؛ نسخهٔ وب پاسخ‌های فوری و پایهٔ آفلاین را دارد.";
+  button.textContent="فقط در نسخهٔ اندروید";
+  button.disabled=true;
+  return;
+ }
+ try{
+  const state=await bridge.status();
+  if(state.ready){status.textContent="مغز آفلاین آماده است؛ می‌توانی بدون اینترنت هم گفت‌وگو کنی.";button.textContent="مدل آفلاین آماده است";button.disabled=false;}
+  else if(state.available){status.textContent="فایل مدل روی دستگاه هست؛ برای بارگذاری و شروع چت آفلاین آماده‌اش کن.";button.textContent="بارگذاری مغز آفلاین";button.disabled=false;}
+  else{status.textContent="مدل همراه برنامه است؛ برای آماده‌سازی اولیه و بررسی سلامت فایل، دکمه را بزن.";button.textContent="آماده‌سازی مغز آفلاین";button.disabled=false;}
+ }catch{status.textContent="وضعیت مدل آفلاین قابل بررسی نیست؛ می‌توانی آماده‌سازی را امتحان کنی.";button.disabled=false;}
+}
+async function prepareLocalModel(){
+ const bridge=window.Capacitor?.Plugins?.LocalLLM;
+ const status=$("localModelStatus"),button=$("prepareLocalModel");
+ if(!bridge||typeof bridge.prepare!=="function"){await refreshLocalModelStatus();return;}
+ button.disabled=true;
+ button.textContent="در حال آماده‌سازی…";
+ status.textContent="ممکن است اولین بار چند دقیقه طول بکشد؛ برنامه را نبند.";
+ let listener=null;
+ try{
+  if(typeof bridge.addListener==="function"){
+   listener=await bridge.addListener("modelProgress",event=>{
+    const percent=Number(event?.percent);
+    if(Number.isFinite(percent)&&percent>=0)status.textContent="در حال کپی و بررسی مدل آفلاین: "+percent+"٪";
+   });
+  }
+  await bridge.prepare();
+  status.textContent="مغز آفلاین آماده است؛ گفت‌وگوی متنی می‌تواند روی همین دستگاه اجرا شود.";
+  button.textContent="مدل آفلاین آماده است";
+ }catch(error){
+  status.textContent="آماده‌سازی ناموفق بود: "+String(error?.message||error||"خطای نامشخص");
+  button.textContent="تلاش دوباره برای آماده‌سازی";
+ }finally{
+  try{await listener?.remove?.();}catch{}
+  button.disabled=false;
+ }
+}
 function closePanels(){ $("sidebar").classList.remove("open");$("settingsPanel").hidden=true;$("mobileScrim").classList.remove("active");}
 form.addEventListener("submit",e=>{e.preventDefault();sendMessage();});input.addEventListener("input",()=>{input.style.height="auto";input.style.height=Math.min(input.scrollHeight,160)+"px";});input.addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();form.requestSubmit();}});
-$("newChat").addEventListener("click",startNewChat);document.querySelectorAll("[data-prompt]").forEach(b=>b.addEventListener("click",()=>sendMessage(b.dataset.prompt)));$("settingsToggle").addEventListener("click",()=>{$("settingsPanel").hidden=false;if(window.innerWidth<=800)$("mobileScrim").classList.add("active");});$("settingsClose").addEventListener("click",closePanels);$("settingsDone").addEventListener("click",closePanels);$("menuToggle").addEventListener("click",()=>{$("sidebar").classList.toggle("open");$("mobileScrim").classList.toggle("active",$("sidebar").classList.contains("open"));});$("sidebarClose").addEventListener("click",closePanels);$("mobileScrim").addEventListener("click",closePanels);
+$("newChat").addEventListener("click",startNewChat);document.querySelectorAll("[data-prompt]").forEach(b=>b.addEventListener("click",()=>sendMessage(b.dataset.prompt)));$("settingsToggle").addEventListener("click",()=>{$("settingsPanel").hidden=false;if(window.innerWidth<=800)$("mobileScrim").classList.add("active");});$("prepareLocalModel").addEventListener("click",prepareLocalModel);$("settingsClose").addEventListener("click",closePanels);$("settingsDone").addEventListener("click",closePanels);$("menuToggle").addEventListener("click",()=>{$("sidebar").classList.toggle("open");$("mobileScrim").classList.toggle("active",$("sidebar").classList.contains("open"));});$("sidebarClose").addEventListener("click",closePanels);$("mobileScrim").addEventListener("click",closePanels);
 $("themeToggle").addEventListener("click",()=>{$("themeSelect").value=document.body.classList.contains("dark")?"light":"dark";applySettings();saveSettings();});
 ["assistantName","accentColor","compactMode","apiBaseUrl","themeSelect"].forEach(id=>$(id).addEventListener("change",()=>{applySettings();saveSettings();if(id==="apiBaseUrl")checkConnection();}));$("assistantName").addEventListener("input",()=>{applySettings();saveSettings();});
 $("toneSelect").addEventListener("change",saveProfile);$("profileNav").addEventListener("click",()=>{closePanels();sendMessage("لطفاً بر اساس اطلاعاتی که درباره سازنده‌ات داری، خودت را معرفی کن و توضیح بده چه چیزهایی درباره من، علایقم و پروژه‌های AF4 می‌دانی. اگر چیزی را نمی‌دانی حدس نزن.");});$("profileButton").addEventListener("click",()=>{$("settingsPanel").hidden=false;if(window.innerWidth<=800)$("mobileScrim").classList.add("active");});$("homeNav").addEventListener("click",startNewChat);
 $("clearHistory").addEventListener("click",()=>{if(!sessions.length)return;if(confirm("همه گفت‌وگوهای ذخیره‌شده در این مرورگر پاک شوند؟")){sessions=[];persist();startNewChat();}});
 $("composerPlus").addEventListener("click",()=>{input.value=input.value?input.value+"\n":"کمکم کن این ایده را مرحله‌به‌مرحله بررسی کنم: ";input.focus();input.dispatchEvent(new Event("input"));});
 window.matchMedia?.("(prefers-color-scheme: dark)").addEventListener?.("change",()=>{if($("themeSelect").value==="system")applySettings();});
-applySettings();loadProfile();renderHistory();checkConnection();
+applySettings();loadProfile();renderHistory();checkConnection();refreshLocalModelStatus();
 
 $("onboardingForm").addEventListener("submit",e=>{e.preventDefault();$("profileName").value=$("onboardingName").value.trim();$("profileAbout").value=$("onboardingAbout").value.trim();saveProfile();$("onboarding").hidden=true;input.focus();});
 if(!profile.name){$("onboardingName").value="";$("onboardingAbout").value="";$("onboarding").hidden=false;}
