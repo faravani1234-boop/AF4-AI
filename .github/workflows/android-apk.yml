@@ -65,7 +65,7 @@ jobs:
           if "org.jetbrains.kotlin.android" not in text:
               if "plugins {" in text and ("id 'com.android.application'" in text or 'id "com.android.application"' in text):
                   if "id 'com.android.application'" in text:
-                      text = text.replace("id 'com.android.application'", "id 'com.android.application'" + nl + "    id 'org.jetbrains.kotlin.android' version '2.1.0'", 1)
+                      text = text.replace("id 'com.android.application'", "id 'com.android.application'" + nl + "    id 'org.jetbrains.kotlin.android' version '2.4.0'", 1)
                   else:
                       text = text.replace('id "com.android.application"', 'id "com.android.application"' + nl + "    id 'org.jetbrains.kotlin.android' version '2.1.0'", 1)
               else:
@@ -77,7 +77,7 @@ jobs:
                   root_text = root.read_text()
                   if "kotlin-gradle-plugin" not in root_text:
                       if "dependencies {" in root_text:
-                          root_text = root_text.replace("dependencies {", "dependencies {" + nl + "        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.1.0'", 1)
+                          root_text = root_text.replace("dependencies {", "dependencies {" + nl + "        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.4.0'", 1)
                       else:
                           root_text += nl + "buildscript { repositories { google(); mavenCentral() }; dependencies { classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.1.0' } }" + nl
                       root.write_text(root_text)
