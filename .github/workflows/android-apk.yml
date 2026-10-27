@@ -63,10 +63,16 @@ jobs:
           gradle = Path("android/app/build.gradle")
           text = gradle.read_text()
           if "org.jetbrains.kotlin.android" not in text:
-              if "plugins {" in text and "id 'com.android.application'" in text:
-                  text = text.replace("id 'com.android.application'", "id 'com.android.application'" + nl + "    id 'org.jetbrains.kotlin.android' version '2.1.0'", 1)
+              if "plugins {" in text and ("id 'com.android.application'" in text or 'id "com.android.application"' in text):
+                  if "id 'com.android.application'" in text:
+                      text = text.replace("id 'com.android.application'", "id 'com.android.application'" + nl + "    id 'org.jetbrains.kotlin.android' version '2.1.0'", 1)
+                  else:
+                      text = text.replace('id "com.android.application"', 'id "com.android.application"' + nl + "    id 'org.jetbrains.kotlin.android' version '2.1.0'", 1)
               else:
-                  text = text.replace("apply plugin: 'com.android.application'", "apply plugin: 'com.android.application'" + nl + "apply plugin: 'org.jetbrains.kotlin.android'", 1)
+                  if "apply plugin: 'com.android.application'" in text:
+                      text = text.replace("apply plugin: 'com.android.application'", "apply plugin: 'com.android.application'" + nl + "apply plugin: 'org.jetbrains.kotlin.android'", 1)
+                  else:
+                      text = text.replace('apply plugin: "com.android.application"', 'apply plugin: "com.android.application"' + nl + "apply plugin: 'org.jetbrains.kotlin.android'", 1)
                   root = Path("android/build.gradle")
                   root_text = root.read_text()
                   if "kotlin-gradle-plugin" not in root_text:
