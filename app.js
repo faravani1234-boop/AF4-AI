@@ -220,8 +220,11 @@ async function localModelReply(value,pending){
 }
 function applySpokenPreferenceCommand(raw){const q=String(raw||"").toLowerCase().replace(/[يى]/g,"ی").replace(/ك/g,"ک").replace(/[ۀة]/g,"ه").replace(/[\u200c\u200e\u200f]/g," ").replace(/[؟?!！،,.؛:]+/g," ").replace(/\s+/g," ").trim();const toneIntent=/(لحن|صحبت|حرف بزن|با من|رفتار کن|خودمونی|صمیمی|جنگی|مدرن|رسمی|حرفه ای)/.test(q);if(toneIntent){const tones=[{re:/(جنگی|حماسی|انرژی بالا|باانرژی)/,value:"warrior",label:"جنگی و پرانرژی"},{re:/(مدرن|امروزی|مینیمال)/,value:"modern",label:"مدرن و شیک"},{re:/(خودمونی|خودمانی|رفاقتی|مثل رفیق)/,value:"casual",label:"خودمونی و رفاقتی"},{re:/(صمیمی|دوستانه|گرم)/,value:"friendly",label:"صمیمی و طبیعی"},{re:/(حرفه ای|رسمی|جدی)/,value:"professional",label:"حرفه‌ای و رسمی"},{re:/(مختصر|کوتاه|مستقیم)/,value:"concise",label:"کوتاه و مستقیم"},{re:/(مفصل|کامل|آموزشی)/,value:"detailed",label:"کامل و توضیحی"}];const found=tones.find(t=>t.re.test(q));if(found&&/(لحن|صحبت|حرف بزن|با من|رفتار کن|خودمونی|صمیمی|جنگی|مدرن|رسمی|حرفه ای)/.test(q)){profile.tone=found.value;try{localStorage.setItem(PROFILE_KEY,JSON.stringify(profile));}catch{}if($("toneSelect"))$("toneSelect").value=found.value;return "چشم! از این به بعد با لحن «"+found.label+"» باهات صحبت می‌کنم. هر وقت خواستی فقط بگو لحنم رو عوض کن.";} }const colorIntent=/(رنگ|رنگی|صفحه رو|ظاهر رو|تم رو|رنگ برنامه|رنگ صفحه|رنگ رابط)/.test(q)&&/(کن|بکن|تغییر|عوض|بشه|بشود|کنش|بذار|قرار بده|میخوام|می خواهم|صفحه رو|ظاهر رو|تم رو)/.test(q);if(colorIntent){const colors=[{re:/بنفش/,value:"purple",label:"بنفش"},{re:/آبی/,value:"blue",label:"آبی"},{re:/سبز/,value:"green",label:"سبز"},{re:/صورتی/,value:"pink",label:"صورتی"},{re:/قرمز/,value:"red",label:"قرمز"},{re:/نارنجی/,value:"orange",label:"نارنجی"},{re:/طلایی|زرد/,value:"gold",label:"طلایی"},{re:/فیروزه ای|فیروزه‌ای|سبزآبی/,value:"teal",label:"فیروزه‌ای"}];const found=colors.find(c=>c.re.test(q));if(found){if($("accentColor"))$("accentColor").value=found.value;applySettings();saveSettings();return "انجام شد! رنگ اصلی صفحه رو به "+found.label+" تغییر دادم. 🎨";}return "حتماً؛ رنگی که می‌خوای رو بگو، مثلاً بنفش، آبی، سبز، صورتی، قرمز، نارنجی یا طلایی.";}return null;}
 async function sendMessage(text,options={}){
- const value=(text??input.value).trim();
- if(!value||sending)return;
+ if(sending)return;
+ const outgoingAttachments=Array.isArray(options.attachments)?options.attachments:(window.AF4Attachments?.consume?.()||[]);
+ let value=(text??input.value).trim();
+ if(!value&&outgoingAttachments.length)value="لطفاً تصویر پیوست‌شده را بررسی و توضیح بده.";
+ if(!value)return;
  welcome.hidden=true;
  let memoryResult=false;
  if(!options.retry){addMessage("user",value);memoryResult=rememberExplicitly(value);observeUserStyle(value);}
@@ -233,6 +236,7 @@ async function sendMessage(text,options={}){
  const pending=addMessage("assistant","دارم پاسخ رو آماده می‌کنم…",false);
  try{
   if(navigator.onLine===false){
+   if(outgoingAttachments.length)throw new Error("تحلیل تصویر به اینترنت و یک مدل آنلاین سازگار با تصویر نیاز دارد.");
    setConnectionStatus("offline","حالت آفلاین");
    const body=pending.querySelector(".message-body");
    if(body)body.textContent="اینترنت در دسترس نیست؛ دارم مغز آفلاین را آماده می‌کنم…";
@@ -248,7 +252,7 @@ async function sendMessage(text,options={}){
   try{
    for(const apiBase of apiBases){
     try{
-     r=await fetch(apiBase+"/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({profile:{name:profile.name,about:profile.about,tone:profile.tone,memory:sharePersonalization?localMemoryNotes:"",styleGuide:sharePersonalization?getStyleGuide():""},messages:currentSession.map(m=>({role:m.role,content:m.text}))}),signal:controller.signal,cache:"no-store"});
+     r=await fetch(apiBase+"/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({profile:{name:profile.name,about:profile.about,tone:profile.tone,memory:sharePersonalization?localMemoryNotes:"",styleGuide:sharePersonalization?getStyleGuide():""},messages:currentSession.map((m,i)=>({role:m.role,content:i===currentSession.length-1&&m.role==="user"&&outgoingAttachments.length?[{type:"text",text:m.text},...outgoingAttachments.map(a=>({type:"image_url",image_url:{url:a.dataUrl}}))]:m.text}))}),signal:controller.signal,cache:"no-store"});
      break;
     }catch(err){fetchError=err;if(err.name==="AbortError")throw err;}
    }
@@ -264,7 +268,8 @@ async function sendMessage(text,options={}){
   const body=pending.querySelector(".message-body");
   if(body)body.textContent="اتصال آنلاین پاسخ نداد؛ دارم مدل آفلاین را امتحان می‌کنم…";
   let local=null;let localError=null;
-  try{local=await localModelReply(value,pending);}catch(err){localError=err;}
+  if(outgoingAttachments.length)localError=new Error("برای تحلیل تصویر، اینترنت و مدل آنلاینِ سازگار با تصویر لازم است.");
+  else try{local=await localModelReply(value,pending);}catch(err){localError=err;}
   if(local){
    pending.remove();
    setConnectionStatus("offline","پاسخ با مدل محلی");
@@ -278,7 +283,7 @@ async function sendMessage(text,options={}){
   const error=addMessage("assistant","فعلاً نتونستم پاسخ بگیرم. پیام تو پاک نشده؛ می‌تونی دوباره تلاش کنی.\n\nجزئیات: "+reason+extra,false);
   const retry=document.createElement("button");
   retry.type="button";retry.className="message-retry";retry.textContent="تلاش دوباره";
-  retry.addEventListener("click",()=>{error.remove();sendMessage(value,{retry:true});});
+  retry.addEventListener("click",()=>{error.remove();sendMessage(value,{retry:true,attachments:outgoingAttachments});});
   error.append(retry);
  }finally{
   setSending(false);input.focus();
