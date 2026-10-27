@@ -14,6 +14,8 @@ import com.google.ai.edge.litertlm.Engine
 import com.google.ai.edge.litertlm.EngineConfig
 import com.google.ai.edge.litertlm.SamplerConfig
 import java.io.File
+import java.net.HttpURLConnection
+import java.net.URL
 import java.security.MessageDigest
 import java.util.concurrent.Executors
 
@@ -96,30 +98,48 @@ class LocalLLMPlugin : Plugin() {
     private fun ensureEngine() {
         if (engine != null) return
         val target = modelFile()
+        if (target.isFile && target.length() >= 900_000_000L && !sha256(target).equals(expectedSha256, ignoreCase = true)) {
+            target.delete()
+        }
         if (!target.isFile || target.length() < 900_000_000L) {
             if (preparing) throw IllegalStateException("آماده‌سازی مدل در حال انجام است؛ کمی صبر کن.")
             preparing = true
             try {
                 val temp = File(context.filesDir, "$modelName.partial")
-                val total = context.assets.openFd("llm/$modelName").use { it.length }
-                var copied = 0L
-                context.assets.open("llm/$modelName").use { input ->
-                    temp.outputStream().buffered().use { output ->
-                        val buffer = ByteArray(1024 * 1024)
-                        while (true) {
-                            val count = input.read(buffer)
-                            if (count < 0) break
-                            output.write(buffer, 0, count)
-                            copied += count
-                            val progress = JSObject()
-                            progress.put("copiedBytes", copied)
-                            progress.put("totalBytes", total)
-                            progress.put("percent", if (total > 0) (copied * 100 / total).toInt() else 0)
-                            notifyListeners("modelProgress", progress)
+                val downloadUrl = URL("https://huggingface.co/litert-community/Qwen3-1.7B/resolve/87603f0/$modelName?download=true")
+                val connection = (downloadUrl.openConnection() as HttpURLConnection).apply {
+                    instanceFollowRedirects = true
+                    connectTimeout = 30000
+                    readTimeout = 60000
+                    requestMethod = "GET"
+                    setRequestProperty("User-Agent", "AF4-AI-Android")
+                }
+                try {
+                    connection.connect()
+                    val response = connection.responseCode
+                    if (response !in 200..299) throw IllegalStateException("دریافت مدل ناموفق بود (HTTP $response).")
+                    val total = connection.contentLengthLong
+                    var copied = 0L
+                    connection.inputStream.buffered().use { input ->
+                        temp.outputStream().buffered().use { output ->
+                            val buffer = ByteArray(1024 * 1024)
+                            while (true) {
+                                val count = input.read(buffer)
+                                if (count < 0) break
+                                output.write(buffer, 0, count)
+                                copied += count
+                                val progress = JSObject()
+                                progress.put("copiedBytes", copied)
+                                progress.put("totalBytes", total)
+                                progress.put("percent", if (total > 0) (copied * 100 / total).toInt().coerceIn(0, 99) else 0)
+                                notifyListeners("modelProgress", progress)
+                            }
                         }
                     }
+                } finally {
+                    connection.disconnect()
                 }
-                if (temp.length() < 900_000_000L) throw IllegalStateException("فایل مدل ناقص است.")
+                if (temp.length() < 900_000_000L) throw IllegalStateException("فایل مدل ناقص است؛ اینترنت و فضای خالی دستگاه را بررسی کن.")
                 val digest = sha256(temp)
                 if (!digest.equals(expectedSha256, ignoreCase = true)) {
                     temp.delete()
@@ -127,6 +147,9 @@ class LocalLLMPlugin : Plugin() {
                 }
                 if (target.exists()) target.delete()
                 if (!temp.renameTo(target)) throw IllegalStateException("ذخیرهٔ مدل در حافظهٔ دستگاه ناموفق بود.")
+            } catch (error: Exception) {
+                File(context.filesDir, "$modelName.partial").delete()
+                throw error
             } finally {
                 preparing = false
             }

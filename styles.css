@@ -174,3 +174,5 @@ body{background:var(--bg);-webkit-font-smoothing:antialiased}
 .memory-actions .memory-clear{background:rgba(255,90,100,.1);color:#ff9ba3;border:1px solid rgba(255,90,100,.22)}
 .sticker-button{font-size:21px;line-height:1}
 @media(max-width:520px){.sticker-tray{gap:4px;padding:8px}.sticker-choice img{max-width:78px}.chat-sticker{width:150px}}
+
+.memory-nudge{display:flex;align-items:center;justify-content:space-between;gap:12px;max-width:680px;margin:12px auto;padding:12px 14px;border:1px solid rgba(160,115,255,.35);border-radius:15px;background:rgba(125,75,230,.09);color:var(--text,#f3f0ff);font-size:13px;line-height:1.8}.memory-nudge[hidden]{display:none!important}.memory-nudge button{flex:0 0 auto;border:1px solid rgba(160,115,255,.4);border-radius:10px;padding:8px 11px;background:rgba(140,90,255,.16);color:inherit;font:inherit;cursor:pointer}
