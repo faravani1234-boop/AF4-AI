@@ -38,7 +38,7 @@
       if(file.type.startsWith("image/")){
         if(!["image/jpeg","image/png","image/webp"].includes(file.type)){alert("این نوع تصویر پشتیبانی نمی‌شود؛ JPG، PNG یا WebP انتخاب کن.");continue;}
         if(file.size>4*1024*1024){alert("حجم تصویر باید حداکثر ۴ مگابایت باشد: "+file.name);continue;}
-        try{pending.push({kind:"image",name:file.name,dataUrl:await readFile(file)});}catch{alert("خواندن تصویر ناموفق بود: "+file.name);}
+        try{const dataUrl=await readFile(file);const total=pending.reduce((sum,item)=>sum+(item.dataUrl?.length||0),0);if(total+dataUrl.length>6500000){alert("حجم مجموع تصاویر برای یک درخواست زیاد است؛ تصاویر کمتری یا کوچک‌تر انتخاب کن.");continue;}pending.push({kind:"image",name:file.name,dataUrl});}catch{alert("خواندن تصویر ناموفق بود: "+file.name);}
       }else{
         if(file.size>1024*1024){alert("حجم فایل متنی باید حداکثر ۱ مگابایت باشد: "+file.name);continue;}
         if(!/\.(txt|md|csv|json|log|xml|html|css|js|py)$/i.test(file.name)){alert("فعلاً فقط فایل‌های متنی مثل TXT، MD، CSV، JSON، HTML، CSS، JS و PY پشتیبانی می‌شوند.");continue;}
