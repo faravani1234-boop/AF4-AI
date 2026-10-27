@@ -35,6 +35,8 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
+      - name: Test offline Persian brain
+        run: npm test
       - name: Prepare app and install Capacitor
         run: |
           npm install
