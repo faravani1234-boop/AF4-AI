@@ -65,6 +65,7 @@
           <div class="eyebrow"><span class="eyebrow-line"></span> فضای هوشمند اختصاصی تو <span class="eyebrow-line"></span></div>
           <h1>سلام <span id="welcomeName">دوست من</span>،<br><span class="headline-gradient">امروز چی می‌سازیم؟</span></h1>
           <p class="welcome-copy">ایده‌هات رو به برنامه تبدیل کن. از ساخت محصول و یادگیری هوش مصنوعی تا کدنویسی و توسعهٔ پروژه‌های AF4؛ قدم‌به‌قدم کنارت هستم.</p>
+          <div class="memory-nudge" id="memoryNudge" hidden><span id="memoryNudgeText">حافظهٔ شخصی‌ات آماده است.</span><button type="button" id="memoryNudgeButton">پیشنهاد موضوع</button></div>
           <div class="suggestions">
             <button class="suggestion" data-prompt="برای توسعه حرفه‌ای AF4-AI یک نقشه راه مرحله‌به‌مرحله طراحی کن."><span class="suggestion-icon violet">✦</span><span><strong>توسعهٔ AF4-AI</strong><small>قابلیت‌های حرفه‌ای اضافه کنیم</small></span><span class="suggestion-arrow">↗</span></button>
             <button class="suggestion" data-prompt="کمکم کن یک ایده تولیدی کم‌هزینه را به محصول قابل فروش تبدیل کنم."><span class="suggestion-icon orange">↗</span><span><strong>ایده تا درآمد</strong><small>از تولید تا فروش محصول</small></span><span class="suggestion-arrow">↗</span></button>
@@ -110,9 +111,11 @@
       <p class="settings-note">آماده‌سازی اولیه ممکن است چند دقیقه طول بکشد و حدود ۲ گیگابایت فضای آزاد برای نصب و آماده‌سازی نیاز دارد. پس از آماده‌شدن، گفت‌وگوهای متنی بدون اینترنت هم قابل انجام‌اند.</p>
       <div class="settings-divider"></div>
       <div class="settings-section-title">حافظهٔ محلی قابل‌کنترل</div>
-      <p class="settings-note">این یادداشت‌ها فقط روی همین دستگاه ذخیره می‌شوند و به سرور ارسال نمی‌شوند. برای ذخیرهٔ نکته‌ای در چت بنویس «یادت باشه: ...»؛ هر زمان هم می‌توانی آن را ویرایش یا پاک کنی.</p>
-      <textarea id="localMemoryNotes" rows="4" maxlength="2000" placeholder="نکته‌هایی که می‌خواهی AF4 به خاطر بسپارد…"></textarea>
+      <p class="settings-note">یادداشت‌ها به‌طور پیش‌فرض فقط روی همین دستگاه ذخیره می‌شوند. در چت بنویس «یادت باشه: ...» تا نکته‌ای ذخیره شود؛ هر زمان می‌توانی آن را ویرایش یا پاک کنی. متن کامل پیام‌ها برای تحلیل سبک ذخیره نمی‌شود؛ فقط آمار سبک گفتار نگه‌داری می‌شود.</p>
+      <textarea id="localMemoryNotes" rows="4" maxlength="2000" placeholder="جزئیات زندگی، علایق، هدف‌ها و موضوع‌هایی که می‌خواهی AF4 به خاطر بسپارد…"></textarea>
       <div class="memory-actions"><button class="settings-done" id="saveLocalMemory" type="button">ذخیرهٔ حافظه</button><button class="settings-done memory-clear" id="clearLocalMemory" type="button">پاک کردن</button></div>
+      <label class="switch-row"><span>اجازهٔ استفاده از حافظه و سبک گفتار در پاسخ‌های آنلاین</span><input id="sharePersonalization" type="checkbox"></label>
+      <p class="settings-note">این گزینه خاموش است مگر خودت روشنش کنی. با روشن‌کردن آن، خلاصهٔ حافظه و سبک گفتارت همراه درخواست آنلاین به سرور AF4 AI فرستاده می‌شود؛ در حالت خاموش، حافظه فقط برای پاسخ محلی روی دستگاه استفاده می‌شود.</p>
       <p class="settings-note" id="localMemoryStatus" aria-live="polite">حافظه روی همین دستگاه می‌ماند.</p>
       <div class="settings-divider"></div>
       <div class="settings-section-title">شخصی‌سازی</div>
