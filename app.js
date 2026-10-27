@@ -1,14 +1,42 @@
 const $=id=>document.getElementById(id);
 const form=$("chatForm"),input=$("messageInput"),messages=$("messages"),welcome=$("welcome"),history=$("history");
 const DEFAULT_API_BASE_URL="https://af4-ai.onrender.com";
-const STORAGE="af4-ai-history-v1",SETTINGS="af4-ai-settings-v2",PROFILE_KEY="af4-ai-profile-v1";
-let profile={name:"",about:"",tone:"friendly"};let deferredInstallPrompt=null;let recognition=null;let listening=false;
+const STORAGE="af4-ai-history-v1",SETTINGS="af4-ai-settings-v2",PROFILE_KEY="af4-ai-profile-v1",MEMORY_KEY="af4-ai-local-memory-v1";
+let profile={name:"",about:"",tone:"friendly"};let localMemoryNotes="";let deferredInstallPrompt=null;let recognition=null;let listening=false;
 let sessions=[],currentSession=[],sending=false;
 const prefersDark=()=>window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches;
 try{sessions=JSON.parse(localStorage.getItem(STORAGE)||"[]");if(!Array.isArray(sessions))sessions=[];}catch{}
 function persist(){try{localStorage.setItem(STORAGE,JSON.stringify(sessions.slice(-40)));}catch{}}
 function settingsValue(){const entered=String($("apiBaseUrl")?.value||"").trim();return{name:"AF4 AI",color:"purple",theme:"dark",compact:false,apiBaseUrl:(entered||DEFAULT_API_BASE_URL).replace(/\/+$/,"")};}
 function loadProfile(){try{const p=JSON.parse(localStorage.getItem(PROFILE_KEY)||"{}");profile={name:String(p.name||"").slice(0,60),about:String(p.about||"").slice(0,1200),tone:["friendly","professional","concise","detailed"].includes(p.tone)?p.tone:"friendly"};}catch{profile={name:"",about:"",tone:"friendly"};} $("profileName").value=profile.name;$("profileAbout").value=profile.about;$("toneSelect").value=profile.tone||"friendly";updateIdentity();}
+function loadLocalMemory(){
+ try{localMemoryNotes=String(localStorage.getItem(MEMORY_KEY)||"").slice(0,2000);}catch{localMemoryNotes="";}
+ const field=$("localMemoryNotes");if(field)field.value=localMemoryNotes;
+ const status=$("localMemoryStatus");if(status)status.textContent=localMemoryNotes?"حافظهٔ محلی بارگذاری شد.":"هنوز یادداشتی ذخیره نشده است.";
+}
+function saveLocalMemory(){
+ const field=$("localMemoryNotes");localMemoryNotes=String(field?.value||"").trim().slice(0,2000);
+ try{localStorage.setItem(MEMORY_KEY,localMemoryNotes);}catch{}
+ if(field)field.value=localMemoryNotes;
+ const status=$("localMemoryStatus");if(status)status.textContent=localMemoryNotes?"حافظهٔ محلی ذخیره شد.":"حافظه خالی است.";
+}
+function clearLocalMemory(){
+ localMemoryNotes="";try{localStorage.removeItem(MEMORY_KEY);}catch{}
+ const field=$("localMemoryNotes");if(field)field.value="";
+ const status=$("localMemoryStatus");if(status)status.textContent="حافظهٔ محلی پاک شد.";
+}
+function rememberExplicitly(raw){
+ const match=String(raw||"").trim().match(/^(?:یادت باشه|به خاطر بسپار|یادت بمونه|یادت نره|این رو یادداشت کن)\s*[:،-]?\s*(.{3,240})$/i);
+ if(!match)return;
+ const note=match[1].trim();
+ if(/رمز|پسورد|گذرواژه|کد ملی|شماره کارت|شماره حساب|api[ -]?key|token|password|secret/i.test(note))return;
+ const items=localMemoryNotes.split(/\n/).map(x=>x.trim()).filter(Boolean);
+ if(items.some(x=>x.toLowerCase()===note.toLowerCase()))return;
+ items.push(note);localMemoryNotes=items.slice(-20).join("\n").slice(0,2000);
+ try{localStorage.setItem(MEMORY_KEY,localMemoryNotes);}catch{}
+ const field=$("localMemoryNotes");if(field)field.value=localMemoryNotes;
+ const status=$("localMemoryStatus");if(status)status.textContent="این نکته در حافظهٔ محلی همین دستگاه ذخیره شد.";
+}
 function saveProfile(){profile={name:$("profileName").value.trim().slice(0,60),about:$("profileAbout").value.trim().slice(0,1200),tone:$("toneSelect").value};try{localStorage.setItem(PROFILE_KEY,JSON.stringify(profile));}catch{}updateIdentity();}
 function updateIdentity(){$("topUserName").textContent=profile.name||"پروفایل شما";$("welcomeName").textContent=profile.name||"دوست من";$("profileButton").setAttribute("aria-label",profile.name?("پروفایل "+profile.name):"پروفایل کاربر");}
 function saveSettings(){try{localStorage.setItem(SETTINGS,JSON.stringify(settingsValue()));}catch{}}
@@ -17,7 +45,7 @@ try{const s=JSON.parse(localStorage.getItem(SETTINGS)||"{}");if(s.name)$("assist
 function renderHistory(){history.replaceChildren();const valid=sessions.filter(s=>s&&Array.isArray(s.items)&&s.items.length);if(!valid.length){const p=document.createElement("p");p.className="empty-history";p.textContent="گفت‌وگوهای جدیدت اینجا می‌مانند.";history.append(p);return;}valid.slice().reverse().forEach(s=>{const b=document.createElement("button");b.className="history-item";b.textContent=s.title||"گفت‌وگوی جدید";b.title=b.textContent;b.onclick=()=>loadSession(s);history.append(b);});}
 function startNewChat(){currentSession=[];messages.replaceChildren();welcome.hidden=false;input.value="";input.style.height="auto";$("sidebar").classList.remove("open");$("mobileScrim").classList.remove("active");renderHistory();input.focus();}
 function loadSession(s){currentSession=s.items;messages.replaceChildren();welcome.hidden=!currentSession.length;currentSession.forEach(m=>addMessage(m.role,m.text,false,m.provider,m.model));$("sidebar").classList.remove("open");$("mobileScrim").classList.remove("active");}
-function addMessage(role,text,save=true,provider=null,model=null){const article=document.createElement("article");article.className="message "+role;const label=document.createElement("div");label.className="message-label";if(role==="user")label.textContent=profile.name||"شما";else if(provider){label.textContent="پاسخ از "+({gemini:"Gemini",groq:"Groq",openrouter:"OpenRouter"}[provider]||provider)+(model?" · "+model:"");label.dataset.provider=provider;}else label.textContent=$("assistantName").value.trim()||"AF4 AI";const body=document.createElement("div");body.className="message-body";body.textContent=text;article.append(label,body);if(role==="assistant"&&text&&text!=="دارم پاسخ رو آماده می‌کنم…"){const speak=document.createElement("button");speak.type="button";speak.className="message-speak";speak.textContent="🔊";speak.title="خواندن پاسخ با صدا";speak.setAttribute("aria-label","خواندن پاسخ با صدا");speak.addEventListener("click",()=>speakText(text));article.append(speak);}messages.append(article);if(save){currentSession.push({role,text,...(provider?{provider}:{}),...(model?{model}:{})});let s=sessions.find(x=>x.items===currentSession);if(!s){s={title:role==="user"?text.slice(0,38):"گفت‌وگوی جدید",items:currentSession};sessions.push(s);}if(s.title==="گفت‌وگوی جدید"&&role==="user")s.title=text.slice(0,38);persist();renderHistory();}const area=$("chatArea");area.scrollTop=area.scrollHeight;return article;}
+function addMessage(role,text,save=true,provider=null,model=null){const article=document.createElement("article");article.className="message "+role;const label=document.createElement("div");label.className="message-label";if(role==="user")label.textContent=profile.name||"شما";else if(provider==="sticker")label.textContent="AF4 AI · استیکر";else if(provider){label.textContent="پاسخ از "+({gemini:"Gemini",groq:"Groq",openrouter:"OpenRouter"}[provider]||provider)+(model?" · "+model:"");label.dataset.provider=provider;}else label.textContent=$("assistantName").value.trim()||"AF4 AI";const body=document.createElement("div");body.className="message-body";if(provider==="sticker"&&model){const img=document.createElement("img");img.className="chat-sticker";img.src=model;img.alt=text||"استیکر AF4";img.loading="lazy";body.append(img);}else body.textContent=text;article.append(label,body);if(role==="assistant"&&provider!=="sticker"&&text&&text!=="دارم پاسخ رو آماده می‌کنم…"){const speak=document.createElement("button");speak.type="button";speak.className="message-speak";speak.textContent="🔊";speak.title="خواندن پاسخ با صدا";speak.setAttribute("aria-label","خواندن پاسخ با صدا");speak.addEventListener("click",()=>speakText(text));article.append(speak);}messages.append(article);if(save){currentSession.push({role,text,...(provider?{provider}:{}),...(model?{model}:{})});let s=sessions.find(x=>x.items===currentSession);if(!s){s={title:role==="user"?text.slice(0,38):"گفت‌وگوی جدید",items:currentSession};sessions.push(s);}if(s.title==="گفت‌وگوی جدید"&&role==="user")s.title=text.slice(0,38);persist();renderHistory();}const area=$("chatArea");area.scrollTop=area.scrollHeight;return article;}
 function normalizeQuickText(value){return String(value||"").toLowerCase().replace(/[يى]/g,"ی").replace(/ك/g,"ک").replace(/[\u200c\u200d]/g," ").replace(/[؟?!.,،؛:؛"'`()[\]{}]+/g," ").replace(/\s+/g," ").trim();}
 function getInstantReply(raw){
  const q=normalizeQuickText(raw);
@@ -144,7 +172,7 @@ async function localModelReply(value,pending){
    });
   }
   const transcript=currentSession.slice(-12).map(m=>(m.role==="user"?"کاربر":"AF4 AI")+": "+m.text).join("\n");
-  const prompt="به فارسی طبیعی و محاوره‌ای پاسخ بده. سابقهٔ اخیر گفت‌وگو را در نظر بگیر، تکرار بی‌دلیل نکن و به آخرین پیام پاسخ بده. اگر سؤال به اطلاعات زنده نیاز دارد و اینترنت در دسترس نیست، این محدودیت را شفاف بگو.\n\n"+transcript+"\n\nپاسخ به آخرین پیام:";
+  const memory=localMemoryNotes.trim()?"\n\nحافظهٔ محلی که کاربر خودش ذخیره کرده؛ فقط برای شخصی‌سازی از آن استفاده کن:\n"+localMemoryNotes:"";const prompt="تو AF4 AI هستی؛ به فارسی طبیعی و محاوره‌ای پاسخ بده و لحن را با کاربر هماهنگ کن. نام کاربر: "+(profile.name||"نامشخص")+"؛ سبک پاسخ: "+(profile.tone||"friendly")+" . سابقهٔ اخیر گفت‌وگو را در نظر بگیر، تکرار بی‌دلیل نکن و به آخرین پیام پاسخ بده. اگر سؤال به اطلاعات زنده نیاز دارد و اینترنت در دسترس نیست، این محدودیت را شفاف بگو."+memory+"\n\n"+transcript+"\n\nپاسخ به آخرین پیام:";
   const result=await bridge.generate({text:prompt});
   const answer=String(result?.text||"").trim();
   return answer||null;
@@ -156,7 +184,7 @@ async function sendMessage(text,options={}){
  const value=(text??input.value).trim();
  if(!value||sending)return;
  welcome.hidden=true;
- if(!options.retry)addMessage("user",value);
+ if(!options.retry){addMessage("user",value);rememberExplicitly(value);}
  input.value="";input.style.height="auto";
  if(!options.retry){const instant=getInstantReply(value);if(instant){addMessage("assistant",instant,true);return;}}
  setConnectionStatus("checking","در حال آماده‌سازی پاسخ…");
@@ -229,7 +257,7 @@ async function refreshLocalModelStatus(){
   const state=await bridge.status();
   if(state.ready){status.textContent="مغز آفلاین آماده است؛ می‌توانی بدون اینترنت هم گفت‌وگو کنی.";button.textContent="مدل آفلاین آماده است";button.disabled=false;}
   else if(state.available){status.textContent="فایل مدل روی دستگاه هست؛ برای بارگذاری و شروع چت آفلاین آماده‌اش کن.";button.textContent="بارگذاری مغز آفلاین";button.disabled=false;}
-  else{status.textContent="برای حفظ همان کیفیت مدل، بار اول باید فایل حدود ۹۷۷ مگابایتی را با اینترنت دانلود کنی؛ بعد از آن می‌توانی کاملاً آفلاین چت کنی.";button.textContent="دانلود و آماده‌سازی مغز آفلاین";button.disabled=false;}
+  else{status.textContent="مدل همراه برنامه است؛ برای آماده‌سازی اولیه و بررسی سلامت فایل، دکمه را بزن.";button.textContent="آماده‌سازی مغز آفلاین";button.disabled=false;}
  }catch{status.textContent="وضعیت مدل آفلاین قابل بررسی نیست؛ می‌توانی آماده‌سازی را امتحان کنی.";button.disabled=false;}
 }
 async function prepareLocalModel(){
@@ -244,7 +272,7 @@ async function prepareLocalModel(){
   if(typeof bridge.addListener==="function"){
    listener=await bridge.addListener("modelProgress",event=>{
     const percent=Number(event?.percent);
-    if(Number.isFinite(percent)&&percent>=0)status.textContent="در حال دانلود و بررسی مدل آفلاین: "+percent+"٪";
+    if(Number.isFinite(percent)&&percent>=0)status.textContent="در حال کپی و بررسی مدل آفلاین: "+percent+"٪";
    });
   }
   await bridge.prepare();
@@ -260,14 +288,24 @@ async function prepareLocalModel(){
 }
 function closePanels(){ $("sidebar").classList.remove("open");$("settingsPanel").hidden=true;$("mobileScrim").classList.remove("active");}
 form.addEventListener("submit",e=>{e.preventDefault();sendMessage();});input.addEventListener("input",()=>{input.style.height="auto";input.style.height=Math.min(input.scrollHeight,160)+"px";});input.addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();form.requestSubmit();}});
-$("newChat").addEventListener("click",startNewChat);document.querySelectorAll("[data-prompt]").forEach(b=>b.addEventListener("click",()=>sendMessage(b.dataset.prompt)));$("settingsToggle").addEventListener("click",()=>{$("settingsPanel").hidden=false;if(window.innerWidth<=800)$("mobileScrim").classList.add("active");});$("prepareLocalModel").addEventListener("click",prepareLocalModel);$("settingsClose").addEventListener("click",closePanels);$("settingsDone").addEventListener("click",closePanels);$("menuToggle").addEventListener("click",()=>{$("sidebar").classList.toggle("open");$("mobileScrim").classList.toggle("active",$("sidebar").classList.contains("open"));});$("sidebarClose").addEventListener("click",closePanels);$("mobileScrim").addEventListener("click",closePanels);
+$("newChat").addEventListener("click",startNewChat);document.querySelectorAll("[data-prompt]").forEach(b=>b.addEventListener("click",()=>sendMessage(b.dataset.prompt)));$("settingsToggle").addEventListener("click",()=>{$("settingsPanel").hidden=false;if(window.innerWidth<=800)$("mobileScrim").classList.add("active");});$("prepareLocalModel").addEventListener("click",prepareLocalModel);
+$("saveLocalMemory").addEventListener("click",saveLocalMemory);
+$("clearLocalMemory").addEventListener("click",clearLocalMemory);
+$("stickerButton").addEventListener("click",()=>{$("stickerTray").hidden=!$("stickerTray").hidden;});
+document.querySelectorAll(".sticker-choice").forEach(button=>button.addEventListener("click",()=>{
+ const tray=$("stickerTray"),src=button.dataset.sticker,caption=button.dataset.alt||"استیکر AF4";
+ if(src)addMessage("user",caption,true,"sticker",src);
+ if(tray)tray.hidden=true;
+}));
+document.addEventListener("click",event=>{const tray=$("stickerTray");if(tray&&!tray.hidden&&!event.target.closest("#stickerTray")&&!event.target.closest("#stickerButton"))tray.hidden=true;});
+$("settingsClose").addEventListener("click",closePanels);$("settingsDone").addEventListener("click",closePanels);$("menuToggle").addEventListener("click",()=>{$("sidebar").classList.toggle("open");$("mobileScrim").classList.toggle("active",$("sidebar").classList.contains("open"));});$("sidebarClose").addEventListener("click",closePanels);$("mobileScrim").addEventListener("click",closePanels);
 $("themeToggle").addEventListener("click",()=>{$("themeSelect").value=document.body.classList.contains("dark")?"light":"dark";applySettings();saveSettings();});
 ["assistantName","accentColor","compactMode","apiBaseUrl","themeSelect"].forEach(id=>$(id).addEventListener("change",()=>{applySettings();saveSettings();if(id==="apiBaseUrl")checkConnection();}));$("assistantName").addEventListener("input",()=>{applySettings();saveSettings();});
 $("toneSelect").addEventListener("change",saveProfile);$("profileNav").addEventListener("click",()=>{closePanels();sendMessage("لطفاً بر اساس اطلاعاتی که درباره سازنده‌ات داری، خودت را معرفی کن و توضیح بده چه چیزهایی درباره من، علایقم و پروژه‌های AF4 می‌دانی. اگر چیزی را نمی‌دانی حدس نزن.");});$("profileButton").addEventListener("click",()=>{$("settingsPanel").hidden=false;if(window.innerWidth<=800)$("mobileScrim").classList.add("active");});$("homeNav").addEventListener("click",startNewChat);
 $("clearHistory").addEventListener("click",()=>{if(!sessions.length)return;if(confirm("همه گفت‌وگوهای ذخیره‌شده در این مرورگر پاک شوند؟")){sessions=[];persist();startNewChat();}});
 $("composerPlus").addEventListener("click",()=>{input.value=input.value?input.value+"\n":"کمکم کن این ایده را مرحله‌به‌مرحله بررسی کنم: ";input.focus();input.dispatchEvent(new Event("input"));});
 window.matchMedia?.("(prefers-color-scheme: dark)").addEventListener?.("change",()=>{if($("themeSelect").value==="system")applySettings();});
-applySettings();loadProfile();renderHistory();checkConnection();refreshLocalModelStatus();
+applySettings();loadProfile();loadLocalMemory();renderHistory();checkConnection();refreshLocalModelStatus();
 
 $("onboardingForm").addEventListener("submit",e=>{e.preventDefault();$("profileName").value=$("onboardingName").value.trim();$("profileAbout").value=$("onboardingAbout").value.trim();saveProfile();$("onboarding").hidden=true;input.focus();});
 if(!profile.name){$("onboardingName").value="";$("onboardingAbout").value="";$("onboarding").hidden=false;}

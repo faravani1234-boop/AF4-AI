@@ -160,3 +160,17 @@ body{background:var(--bg);-webkit-font-smoothing:antialiased}
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}
 }
+
+/* AF4 custom sticker tray and local memory controls */
+.sticker-tray{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 2px 10px;padding:12px;border:1px solid rgba(255,255,255,.12);border-radius:18px;background:rgba(20,20,32,.96);box-shadow:0 12px 32px rgba(0,0,0,.18)}
+.sticker-tray[hidden]{display:none!important}
+.sticker-choice{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-width:0;padding:6px 3px;border:1px solid transparent;border-radius:13px;background:transparent;color:inherit;cursor:pointer;font:inherit;font-size:12px}
+.sticker-choice:hover,.sticker-choice:focus-visible{background:rgba(150,100,255,.12);border-color:rgba(150,100,255,.45);outline:none}
+.sticker-choice img{display:block;width:100%;max-width:96px;height:auto;aspect-ratio:1/1;object-fit:contain}
+.chat-sticker{display:block;width:176px;max-width:100%;height:auto;object-fit:contain}
+.message-body:has(.chat-sticker){background:transparent;padding:0;box-shadow:none}
+.memory-actions{display:flex;gap:8px;align-items:center}
+.memory-actions .settings-done{flex:1}
+.memory-actions .memory-clear{background:rgba(255,90,100,.1);color:#ff9ba3;border:1px solid rgba(255,90,100,.22)}
+.sticker-button{font-size:21px;line-height:1}
+@media(max-width:520px){.sticker-tray{gap:4px;padding:8px}.sticker-choice img{max-width:78px}.chat-sticker{width:150px}}
