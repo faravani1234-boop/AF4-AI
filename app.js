@@ -57,8 +57,8 @@ function handleLocalMemoryCommand(raw){
  return null;
 }
 function updateMemoryNudge(){
- const box=$("memoryNudge");if(!box)return;box.hidden=!localMemoryNotes.trim();
- const label=$("memoryNudgeText");const first=localMemoryNotes.split("\n").map(x=>x.trim()).filter(Boolean)[0]||"";if(label)label.textContent=first?"دفعهٔ قبل گفتی: «"+first.slice(0,90)+(first.length>90?"…":"")+"». دوست داری ادامه بدیم؟":"حافظهٔ شخصی‌ات آماده است؛ دوست داری یکی از موضوع‌های قبلی را مرور کنیم؟";
+ const box=$("memoryNudge");if(!box)return;const first=localMemoryNotes.split("\n").map(x=>x.trim()).filter(Boolean)[0]||"";const recent=sessions.filter(s=>s&&Array.isArray(s.items)&&s.items.length).slice(-1)[0];box.hidden=!first&&!recent;
+ const label=$("memoryNudgeText");if(label)label.textContent=first?"دفعهٔ قبل گفتی: «"+first.slice(0,90)+(first.length>90?"…":"")+"». دوست داری ادامه بدیم؟":recent?"آخرین گفت‌وگومون: «"+String(recent.title||"گفت‌وگوی قبلی").slice(0,70)+"». ادامه بدیم؟":"حافظهٔ شخصی‌ات آماده است؛ دوست داری یکی از موضوع‌های قبلی را مرور کنیم؟";
 }
 const STYLE_MARKERS=["داداش","رفیق","سلطان","دمت گرم","ببین","خب","یعنی","آره","مرسی","عالی","بترکون","خخخ","اوکی","میخام","میخوام"];
 function loadStyleProfile(){try{const p=JSON.parse(localStorage.getItem(STYLE_KEY)||"{}");if(p&&typeof p==="object")styleProfile={messages:Math.max(0,Number(p.messages)||0),avgWords:Math.max(0,Number(p.avgWords)||0),emojiRate:Math.max(0,Number(p.emojiRate)||0),questionRate:Math.max(0,Number(p.questionRate)||0),exclaimRate:Math.max(0,Number(p.exclaimRate)||0),markers:p.markers&&typeof p.markers==="object"?p.markers:{},wordCounts:p.wordCounts&&typeof p.wordCounts==="object"?p.wordCounts:{}};}catch{}}
@@ -339,7 +339,7 @@ $("saveLocalMemory").addEventListener("click",saveLocalMemory);
 $("clearLocalMemory").addEventListener("click",clearLocalMemory);
 $("sharePersonalization").addEventListener("change",saveSharePreference);
 $("clearStyleProfile").addEventListener("click",clearStyleProfile);
-$("memoryNudgeButton").addEventListener("click",()=>{closePanels();const first=localMemoryNotes.split("\n").map(x=>x.trim()).filter(Boolean)[0]||"";input.value=first?"می‌خواهم دربارهٔ این موضوع ادامه بدهم: "+first:"کمکم کن یکی از موضوع‌های قبلی را مرور کنم.";input.dispatchEvent(new Event("input"));input.focus();});
+$("memoryNudgeButton").addEventListener("click",()=>{closePanels();const first=localMemoryNotes.split("\n").map(x=>x.trim()).filter(Boolean)[0]||"";const recent=sessions.filter(s=>s&&Array.isArray(s.items)&&s.items.length).slice(-1)[0];if(!first&&recent){loadSession(recent);input.value="بیایم گفت‌وگوی قبلی را ادامه بدهیم: "+String(recent.title||"موضوع قبلی");}else input.value=first?"می‌خواهم دربارهٔ این موضوع ادامه بدهم: "+first:"کمکم کن یکی از موضوع‌های قبلی را مرور کنم.";input.dispatchEvent(new Event("input"));input.focus();});
 $("stickerButton").addEventListener("click",()=>{$("stickerTray").hidden=!$("stickerTray").hidden;});
 document.querySelectorAll(".sticker-choice").forEach(button=>button.addEventListener("click",()=>{
  const tray=$("stickerTray"),src=button.dataset.sticker,caption=button.dataset.alt||"استیکر AF4";
