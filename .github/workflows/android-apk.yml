@@ -59,14 +59,30 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           import re
+          nl = chr(10)
           gradle = Path("android/app/build.gradle")
           text = gradle.read_text()
-          nl = chr(10)
-          text = text.replace("id 'com.android.application'", "id 'com.android.application'" + nl + "    id 'org.jetbrains.kotlin.android' version '2.1.0'")
+          if "org.jetbrains.kotlin.android" not in text:
+              if "plugins {" in text and "id 'com.android.application'" in text:
+                  text = text.replace("id 'com.android.application'", "id 'com.android.application'" + nl + "    id 'org.jetbrains.kotlin.android' version '2.1.0'", 1)
+              else:
+                  text = text.replace("apply plugin: 'com.android.application'", "apply plugin: 'com.android.application'" + nl + "apply plugin: 'org.jetbrains.kotlin.android'", 1)
+                  root = Path("android/build.gradle")
+                  root_text = root.read_text()
+                  if "kotlin-gradle-plugin" not in root_text:
+                      if "dependencies {" in root_text:
+                          root_text = root_text.replace("dependencies {", "dependencies {" + nl + "        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.1.0'", 1)
+                      else:
+                          root_text += nl + "buildscript { repositories { google(); mavenCentral() }; dependencies { classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.1.0' } }" + nl
+                      root.write_text(root_text)
           if "litertlm-android" not in text:
               text = text.replace("dependencies {", "dependencies {" + nl + "    implementation 'com.google.ai.edge.litertlm:litertlm-android:0.18.0'", 1)
           if "noCompress" not in text:
-              text = text.replace("android {", "android {" + nl + "    androidResources { noCompress += ['litertlm'] }" + nl + "    kotlinOptions { jvmTarget = '21' }", 1)
+              text = text.replace("android {", "android {" + nl + "    androidResources { noCompress += ['litertlm'] }", 1)
+          if "KotlinCompile" not in text:
+              text += nl + "tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach { kotlinOptions.jvmTarget = '21' }" + nl
+          text = re.sub(r'minSdkVersion[ ]+23', 'minSdkVersion 24', text)
+          text = re.sub(r'minSdk[ ]+23', 'minSdk 24', text)
           gradle.write_text(text)
           variables = Path("android/variables.gradle")
           if variables.exists():
