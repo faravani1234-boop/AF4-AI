@@ -40,7 +40,7 @@ jobs:
           distribution: temurin
           java-version: '21'
       - name: Test offline Persian brain
-        run: npm test && node --check app.js && node --check offline-brain.js && node --check server.js
+        run: npm test && node --check app.js && node --check offline-brain.js && node --check attachments.js && node --check server.js
       - name: Prepare app and install Capacitor
         run: |
           npm install
