@@ -49,7 +49,8 @@ jobs:
           rm -rf android
           npx cap add android
           mkdir -p android/app/src/main/assets/llm android/app/src/main/java/com/af4/ai
-          # Model artifact is pinned to revision 87603f0 and verified with its published SHA-256.\n          echo "Downloading the Qwen3 1.7B offline model (~977 MB)..."
+          # Model artifact is pinned to revision 87603f0 and verified with its published SHA-256.
+          echo "Downloading the Qwen3 1.7B offline model (~977 MB)..."
           curl --fail --location --retry 3 --retry-delay 3 --connect-timeout 30 --output android/app/src/main/assets/llm/Qwen3-1.7B_dynamic_wi4b32_afp32.litertlm https://huggingface.co/litert-community/Qwen3-1.7B/resolve/87603f0/Qwen3-1.7B_dynamic_wi4b32_afp32.litertlm
           echo "2a72330b504a6596d53a2c00923c57173b10f1b83e6a541213ffec08d1fc5de8  android/app/src/main/assets/llm/Qwen3-1.7B_dynamic_wi4b32_afp32.litertlm" | sha256sum --check
           curl --fail --location --retry 3 --output android/app/src/main/assets/llm/QWEN3-LICENSE.txt https://huggingface.co/Qwen/Qwen3-1.7B/resolve/main/LICENSE
