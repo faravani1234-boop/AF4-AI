@@ -138,7 +138,7 @@ app.post("/api/chat",async(req,res)=>{
   for(const part of m.content){
    if(part?.type==="text"&&typeof part.text==="string"){blocks.push({type:"text",text:part.text.slice(0,12000)});continue;}
    const dataUrl=part?.type==="image_url"?part.image_url?.url:"";
-   const match=typeof dataUrl==="string"?dataUrl.match(/^data:(image\\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/i):null;
+   const match=typeof dataUrl==="string"?dataUrl.match(/^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/i):null;
    if(!match||match[2].length>6000000)return res.status(400).json({error:"تصویر پیوست معتبر نیست یا بیش از حد بزرگ است. از JPG، PNG یا WebP تا ۴ مگابایت استفاده کن."});
    blocks.push({type:"image_url",image_url:{url:dataUrl}});hasImages=true;
   }
@@ -175,7 +175,7 @@ app.post("/api/chat",async(req,res)=>{
     const payload=useGoogleSearch
      ?geminiGroundedPayload(input,contextualInstructions,model)
      :isAnthropic
-      ?{model,max_tokens:1600,system:contextualInstructions,messages:input.map(m=>({role:m.role,content:typeof m.content==="string"?m.content:m.content.map(part=>{if(part.type==="text")return {type:"text",text:part.text};const match=part.image_url.url.match(/^data:(image\\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/i);return match?{type:"image",source:{type:"base64",media_type:match[1].toLowerCase(),data:match[2]}}:{type:"text",text:"[تصویر نامعتبر حذف شد]"};})}))}
+      ?{model,max_tokens:1600,system:contextualInstructions,messages:input.map(m=>({role:m.role,content:typeof m.content==="string"?m.content:m.content.map(part=>{if(part.type==="text")return {type:"text",text:part.text};const match=part.image_url.url.match(/^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/i);return match?{type:"image",source:{type:"base64",media_type:match[1].toLowerCase(),data:match[2]}}:{type:"text",text:"[تصویر نامعتبر حذف شد]"};})}))}
       :{model,messages:[{role:"system",content:contextualInstructions},...input],max_tokens:1600};
     const response=await fetch(endpoint,{method:"POST",headers:requestHeaders,body:JSON.stringify(payload),signal:AbortSignal.timeout(Math.min(name==="pollinations"?6000:7000,Math.max(1000,requestDeadline-Date.now())))});
     const raw=await response.text();
