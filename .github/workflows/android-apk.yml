@@ -65,7 +65,7 @@ jobs:
           if "litertlm-android" not in text:
               text = text.replace("dependencies {", "dependencies {" + nl + "    implementation 'com.google.ai.edge.litertlm:litertlm-android:0.18.0'", 1)
           if "noCompress" not in text:
-              text = text.replace("android {", "android {" + nl + "    androidResources { noCompress += ['litertlm'] }" + nl + "    kotlinOptions { jvmTarget = '17' }", 1)
+              text = text.replace("android {", "android {" + nl + "    androidResources { noCompress += ['litertlm'] }" + nl + "    kotlinOptions { jvmTarget = '21' }", 1)
           gradle.write_text(text)
           variables = Path("android/variables.gradle")
           if variables.exists():
