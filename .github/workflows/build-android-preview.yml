@@ -2,13 +2,6 @@ name: Build AF4 AI Android Preview
 
 on:
   workflow_dispatch:
-  push:
-    paths:
-      - 'index.html'
-      - 'styles.css'
-      - 'app.js'
-      - 'android/**'
-      - '.github/workflows/build-android-preview.yml'
 
 permissions:
   contents: read
